@@ -381,7 +381,10 @@ o = s:taboption("DNS", Flag, "filter_proxy_ipv6", translate("Filter Proxy Host I
 o.default = "0"
 
 ---- DNS Forward Mode
-o = s:taboption("DNS", ListValue, "dns_mode", translate("Filter Mode"))
+o = s:taboption("DNS", ListValue, "dns_mode", translate("Filter Mode"),
+			 "<font color='red'>" .. translate(
+				 "If the node uses Xray/Sing-Box shunt, select the matching filter mode (Xray/Sing-Box).") ..
+				 "</font>")
 o:value("udp", translatef("Requery DNS By %s", "UDP"))
 o:value("tcp", translatef("Requery DNS By %s", "TCP"))
 if chinadns_tls == 0 then
@@ -402,7 +405,10 @@ end
 
 ---- SmartDNS Forward Mode
 if api.is_finded("smartdns") then
-	o = s:taboption("DNS", ListValue, "smartdns_dns_mode", translate("Filter Mode"))
+	o = s:taboption("DNS", ListValue, "smartdns_dns_mode", translate("Filter Mode"),
+				 "<font color='red'>" .. translate(
+					 "If the node uses Xray/Sing-Box shunt, select the matching filter mode (Xray/Sing-Box).") ..
+					 "</font>")
 	o:value("socks", "Socks")
 	if has_singbox then
 		o:value("sing-box", "Sing-Box")
@@ -428,7 +434,7 @@ if api.is_finded("smartdns") then
 	o:value("https://8.8.8.8/dns-query")
 	o:value("https://9.9.9.9/dns-query")
 	o:value("https://208.67.222.222/dns-query")
-	o:value("https://dns.adguard.com/dns-query,176.103.130.130")
+	o:value("https://dns.adguard.com/dns-query,94.140.14.14")
 	o:value("https://doh.libredns.gr/dns-query,116.202.176.26")
 	o:value("https://doh.libredns.gr/ads,116.202.176.26")
 	o:depends({ dns_shunt = "smartdns", smartdns_dns_mode = "socks" })
@@ -552,8 +558,7 @@ o.description = translate("Notify the DNS server when the DNS query is notified,
 o.datatype = "ipaddr"
 o:depends({dns_mode = "sing-box"})
 o:depends({dns_mode = "xray"})
-o:depends("smartdns_dns_mode", "sing-box")
-o:depends("smartdns_dns_mode", "xray")
+o:depends("dns_shunt", "smartdns")
 
 o = s:taboption("DNS", Flag, "remote_fakedns", "FakeDNS", translate("Use FakeDNS work in the shunt domain that proxy."))
 o.default = "0"

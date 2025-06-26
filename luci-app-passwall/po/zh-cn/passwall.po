@@ -121,6 +121,9 @@ msgstr "您只需要在SmartDNS配置好国内DNS分组，并设置重定向或�
 msgid "Filter Mode"
 msgstr "过滤模式"
 
+msgid "If the node uses Xray/Sing-Box shunt, select the matching filter mode (Xray/Sing-Box)."
+msgstr "当节点使用 Xray/Sing-Box 分流时，过滤模式需对应选择 Xray/Sing-Box 。"
+
 msgid "A/AAAA type"
 msgstr "A/AAAA 类型"
 
@@ -1077,6 +1080,9 @@ msgstr "删除所有订阅节点"
 
 msgid "Delete the subscribed node"
 msgstr "删除已订阅的节点"
+
+msgid "Are you sure you want to delete all subscribed nodes?"
+msgstr "您确定要删除所有已订阅的节点吗？"
 
 msgid "Manual subscription All"
 msgstr "手动订阅全部"
