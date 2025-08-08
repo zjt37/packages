@@ -4,7 +4,8 @@ START=99
 STOP=10
 USE_PROCD=1
 
-. "$IPKG_INSTROOT/lib/functions/network.sh"
+PROG="/usr/bin/mihomo"
+
 . "$IPKG_INSTROOT/etc/nikki/scripts/include.sh"
 
 extra_command 'update_subscription' 'Update subscription by section id'
@@ -138,9 +139,9 @@ start_service() {
 			yq -M -i 'del(.sniffer.sniff)' "$RUN_PROFILE_PATH"
 		fi
 		if [ "$mixin_file_content" = 0 ]; then
-			ucode -S "$MIXIN_UC" | yq -M -p json -o yaml | yq -M -i ea '... comments="" | . as $item ireduce ({}; . * $item ) | .rules = .nikki-rules + .rules | del(.nikki-rules)' "$RUN_PROFILE_PATH" -
+			ucode -S "$MIXIN_UC" | yq -M -p json -o yaml | yq -M -i ea '... comments="" | . as $item ireduce ({}; . * $item ) | .proxies = .nikki-proxies + .proxies | del(.nikki-proxies) | .rules = .nikki-rules + .rules | del(.nikki-rules)' "$RUN_PROFILE_PATH" -
 		elif [ "$mixin_file_content" = 1 ]; then
-			ucode -S "$MIXIN_UC" | yq -M -p json -o yaml | yq -M -i ea '... comments="" | . as $item ireduce ({}; . * $item ) | .rules = .nikki-rules + .rules | del(.nikki-rules)' "$RUN_PROFILE_PATH" "$MIXIN_FILE_PATH" -
+			ucode -S "$MIXIN_UC" | yq -M -p json -o yaml | yq -M -i ea '... comments="" | . as $item ireduce ({}; . * $item ) | .proxies = .nikki-proxies + .proxies | del(.nikki-proxies) | .rules = .nikki-rules + .rules | del(.nikki-rules)' "$RUN_PROFILE_PATH" "$MIXIN_FILE_PATH" -
 		fi
 	fi
 	# test profile
@@ -193,9 +194,9 @@ service_started() {
 	# load config
 	config_load nikki
 	# check if proxy enabled
-	local enabled
-	config_get_bool enabled "proxy" "enabled" 0
-	if [ "$enabled" = 0 ]; then
+	local proxy_enabled
+	config_get_bool proxy_enabled "proxy" "enabled" 0
+	if [ "$proxy_enabled" = 0 ]; then
 		log "Proxy" "Disabled."
 		return
 	fi
