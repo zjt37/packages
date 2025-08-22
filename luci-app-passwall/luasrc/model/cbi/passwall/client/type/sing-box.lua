@@ -75,7 +75,8 @@ for k, e in ipairs(api.get_valid_nodes()) do
 		nodes_table[#nodes_table + 1] = {
 			id = e[".name"],
 			remark = e["remark"],
-			type = e["type"]
+			type = e["type"],
+			chain_proxy = e["chain_proxy"]
 		}
 	end
 	if e.protocol == "_iface" then
@@ -296,10 +297,16 @@ o.default = ""
 o:value("", translate("Disable"))
 o:value("xtls-rprx-vision")
 o:depends({ [_n("protocol")] = "vless", [_n("tls")] = true })
+o:depends({ [_n("protocol")] = "trojan", [_n("tls")] = true })
 
 if singbox_tags:find("with_quic") then
 	o = s:option(Value, _n("hysteria_hop"), translate("Port hopping range"))
 	o.description = translate("Format as 1000:2000 or 1000-2000 Multiple groups are separated by commas (,).")
+	o:depends({ [_n("protocol")] = "hysteria" })
+
+	o = s:option(Value, _n("hysteria_hop_interval"), translate("Hop Interval"), translate("Example:") .. "30s (≥5s)")
+	o.placeholder = "30s"
+	o.default = "30s"
 	o:depends({ [_n("protocol")] = "hysteria" })
 
 	o = s:option(Value, _n("hysteria_obfs"), translate("Obfs Password"))
@@ -380,6 +387,11 @@ end
 if singbox_tags:find("with_quic") then
 	o = s:option(Value, _n("hysteria2_hop"), translate("Port hopping range"))
 	o.description = translate("Format as 1000:2000 or 1000-2000 Multiple groups are separated by commas (,).")
+	o:depends({ [_n("protocol")] = "hysteria2" })
+
+	o = s:option(Value, _n("hysteria2_hop_interval"), translate("Hop Interval"), translate("Example:") .. "30s (≥5s)")
+	o.placeholder = "30s"
+	o.default = "30s"
 	o:depends({ [_n("protocol")] = "hysteria2" })
 
 	o = s:option(Value, _n("hysteria2_up_mbps"), translate("Max upload Mbps"))
@@ -742,7 +754,7 @@ o = s:option(ListValue, _n("to_node"), translate("Landing Node"), translate("Onl
 o:depends({ [_n("chain_proxy")] = "2" })
 
 for k, v in pairs(nodes_table) do
-	if v.type == "sing-box" and v.id ~= arg[1] then
+	if v.type == "sing-box" and v.id ~= arg[1] and (not v.chain_proxy or v.chain_proxy == "") then
 		s.fields[_n("preproxy_node")]:value(v.id, v.remark)
 		s.fields[_n("to_node")]:value(v.id, v.remark)
 	end

@@ -65,8 +65,6 @@ const appLogPath = `${logDir}/app.log`;
 const coreLogPath = `${logDir}/core.log`;
 const debugLogPath = `${logDir}/debug.log`;
 const nftDir = `${homeDir}/nftables`;
-const reservedIPNFT = `${nftDir}/reserved_ip.nft`;
-const reservedIP6NFT = `${nftDir}/reserved_ip6.nft`;
 
 return baseclass.extend({
     homeDir: homeDir,
@@ -80,8 +78,6 @@ return baseclass.extend({
     appLogPath: appLogPath,
     coreLogPath: coreLogPath,
     debugLogPath: debugLogPath,
-    reservedIPNFT: reservedIPNFT,
-    reservedIP6NFT: reservedIP6NFT,
 
     status: async function () {
         return (await callRCList('nikki'))?.nikki?.running;
@@ -111,6 +107,9 @@ return baseclass.extend({
         const profile = await callNikkiProfile({ 'external-controller': null, 'secret': null });
         const apiListen = profile['external-controller'];
         const apiSecret = profile['secret'] ?? '';
+        if (!apiListen) {
+            return Promise.reject('API has not been configured');
+        }
         const apiPort = apiListen.substring(apiListen.lastIndexOf(':') + 1);
         const url = `http://${window.location.hostname}:${apiPort}${path}`;
         return request.request(url, {
@@ -118,7 +117,7 @@ return baseclass.extend({
             headers: { 'Authorization': `Bearer ${apiSecret}` },
             query: query,
             content: body
-        })
+        });
     },
 
     openDashboard: async function () {
@@ -126,6 +125,9 @@ return baseclass.extend({
         const uiName = profile['external-ui-name'];
         const apiListen = profile['external-controller'];
         const apiSecret = profile['secret'] ?? '';
+        if (!apiListen) {
+            return Promise.reject('API has not been configured');
+        }
         const apiPort = apiListen.substring(apiListen.lastIndexOf(':') + 1);
         const params = {
             host: window.location.hostname,
@@ -141,6 +143,7 @@ return baseclass.extend({
             url = `http://${window.location.hostname}:${apiPort}/ui/?${query}`;
         }
         setTimeout(function () { window.open(url, '_blank') }, 0);
+        return Promise.resolve();
     },
 
     updateDashboard: function () {
