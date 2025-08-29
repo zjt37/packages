@@ -21,11 +21,22 @@
 	const redir_port = profile['redir-port'];
 	const tproxy_port = profile['tproxy-port'];
 
-	const dns_listen = profile['dns']['listen'];
-	const dns_port = substr(dns_listen, rindex(dns_listen, ':') + 1);
-	const fake_ip_range = profile['dns']['fake-ip-range'];
+	let dns_listen;
+	let dns_port;
+	let fake_ip_range;
+	if (profile['dns']) {
+		dns_listen = profile['dns']['listen'];
+		const dns_listen_rindex = rindex(dns_listen, ':');
+		if (dns_listen_rindex >= 0 && dns_listen_rindex + 1 < length(dns_listen)) {
+			dns_port = substr(dns_listen, dns_listen_rindex + 1);
+		}
+		fake_ip_range = profile['dns']['fake-ip-range'];
+	}
 
-	const tun_device = profile['tun']['device'];
+	let tun_device;
+	if (profile['tun']) {
+		tun_device = profile['tun']['device'];
+	}
 
 	uci.load('nikki');
 
@@ -70,8 +81,8 @@
 		push(lan_access_control, access_control);
 	});
 
-	const reserved_ip = uci_array(uci.get('momo', 'proxy', 'reserved_ip'));
-	const reserved_ip6 = uci_array(uci.get('momo', 'proxy', 'reserved_ip6'));
+	const reserved_ip = uci_array(uci.get('nikki', 'proxy', 'reserved_ip'));
+	const reserved_ip6 = uci_array(uci.get('nikki', 'proxy', 'reserved_ip6'));
 	const bypass_dscp = uci_array(uci.get('nikki', 'proxy', 'bypass_dscp'));
 	const bypass_china_mainland_ip = uci_bool(uci.get('nikki', 'proxy', 'bypass_china_mainland_ip'));
 	const proxy_tcp_dport = split((uci.get('nikki', 'proxy', 'proxy_tcp_dport') ?? '0-65535'), ' ');
