@@ -41,14 +41,6 @@ local geo2rule = uci:get(name, "@global_rules[0]", "geo2rule") or "0"
 local geoip_update_ok, geosite_update_ok = false, false
 asset_location = asset_location:match("/$") and asset_location or (asset_location .. "/")
 
---兼容旧版本geo下载方式的配置，择机删除。
-if geoip_url:match(".*/([^/]+)$") == "latest" then
-	geoip_url = "https://github.com/Loyalsoldier/geoip/releases/latest/download/geoip.dat"
-end
-if geosite_url:match(".*/([^/]+)$") == "latest" then
-	geosite_url = "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
-end
-
 if arg3 == "cron" then
 	arg2 = nil
 end
@@ -109,9 +101,11 @@ end
 
 --check excluded domain
 local function check_excluded_domain(value)
-	for k,v in ipairs(excluded_domain) do
-		if value:find(v) then
-			return true
+	value = value and value:lower() or ""
+	for _, domain in ipairs(excluded_domain) do
+		local pattern = "^[a-z0-9-]+%.(" .. domain .. ")$"
+		if value:match(pattern) then
+		    return true
 		end
 	end
 end
