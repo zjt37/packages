@@ -77,7 +77,8 @@ for k, e in ipairs(api.get_valid_nodes()) do
 			id = e[".name"],
 			remark = e["remark"],
 			type = e["type"],
-			chain_proxy = e["chain_proxy"]
+			chain_proxy = e["chain_proxy"],
+			group = e["group"]
 		}
 	end
 	if e.protocol == "_iface" then
@@ -105,26 +106,29 @@ m.uci:foreach(appname, "socks", function(s)
 end)
 
 --[[ URLTest ]]
-o = s:option(DynamicList, _n("urltest_node"), translate("URLTest node list"), translate("List of nodes to test, <a target='_blank' href='https://sing-box.sagernet.org/configuration/outbound/urltest'>document</a>"))
+o = s:option(MultiValue, _n("urltest_node"), translate("URLTest node list"), translate("List of nodes to test, <a target='_blank' href='https://sing-box.sagernet.org/configuration/outbound/urltest'>document</a>"))
 o:depends({ [_n("protocol")] = "_urltest" })
-local valid_ids = {}
-for k, v in pairs(nodes_table) do
+o.widget = "checkbox"
+o.template = appname .. "/cbi/nodes_multiselect"
+o.group = {}
+for i, v in pairs(nodes_table) do
 	o:value(v.id, v.remark)
-	valid_ids[v.id] = true
+	o.group[#o.group+1] = v.group or ""
 end
--- 去重并禁止自定义非法输入
+-- 读取旧 DynamicList
+function o.cfgvalue(self, section)
+	local val = m.uci:get_list(appname, section, "urltest_node")
+	if val then
+		return val
+	else
+		return {}
+	end
+end
+-- 写入保持 DynamicList
 function o.custom_write(self, section, value)
 	local result = {}
-	if type(value) == "table" then
-		local seen = {}
-		for _, v in ipairs(value) do
-			if v and not seen[v] and valid_ids[v] then
-				table.insert(result, v)
-				seen[v] = true
-			end
-		end
-	else
-		result = { value }
+	for v in value:gmatch("%S+") do
+		result[#result + 1] = v
 	end
 	m.uci:set_list(appname, section, "urltest_node", result)
 end
@@ -605,12 +609,18 @@ o = s:option(DynamicList, _n("tcp_guise_http_path"), translate("HTTP Path"))
 o.placeholder = "/"
 o:depends({ [_n("tcp_guise")] = "http" })
 
+o = s:option(Value, _n("tcp_guise_http_user_agent"), translate("User-Agent"))
+o:depends({ [_n("tcp_guise")] = "http" })
+
 -- [[ HTTP部分 ]]--
 o = s:option(DynamicList, _n("http_host"), translate("HTTP Host"))
 o:depends({ [_n("transport")] = "http" })
 
 o = s:option(Value, _n("http_path"), translate("HTTP Path"))
 o.placeholder = "/"
+o:depends({ [_n("transport")] = "http" })
+
+o = s:option(Value, _n("http_user_agent"), translate("User-Agent"))
 o:depends({ [_n("transport")] = "http" })
 
 o = s:option(Flag, _n("http_h2_health_check"), translate("Health check"))
@@ -632,6 +642,9 @@ o = s:option(Value, _n("ws_path"), translate("WebSocket Path"))
 o.placeholder = "/"
 o:depends({ [_n("transport")] = "ws" })
 
+o = s:option(Value, _n("ws_user_agent"), translate("User-Agent"))
+o:depends({ [_n("transport")] = "ws" })
+
 o = s:option(Flag, _n("ws_enableEarlyData"), translate("Enable early data"))
 o:depends({ [_n("transport")] = "ws" })
 
@@ -648,6 +661,9 @@ o:depends({ [_n("transport")] = "httpupgrade" })
 
 o = s:option(Value, _n("httpupgrade_path"), translate("HTTPUpgrade Path"))
 o.placeholder = "/"
+o:depends({ [_n("transport")] = "httpupgrade" })
+
+o = s:option(Value, _n("httpupgrade_user_agent"), translate("User-Agent"))
 o:depends({ [_n("transport")] = "httpupgrade" })
 
 -- [[ gRPC部分 ]]--
