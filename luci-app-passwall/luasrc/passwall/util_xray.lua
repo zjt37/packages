@@ -74,7 +74,7 @@ function gen_outbound(flag, node, tag, proxy_table)
 				local relay_port = node.port
 				new_port = get_new_port()
 				local config_file = string.format("%s_%s_%s.json", flag, tag, new_port)
-				if tag and node_id and tag ~= node_id then
+				if tag and node_id and not tag:find(node_id) then
 					config_file = string.format("%s_%s_%s_%s.json", flag, tag, node_id, new_port)
 				end
 				if run_socks_instance then
@@ -146,6 +146,7 @@ function gen_outbound(flag, node, tag, proxy_table)
 			streamSettings = (node.streamSettings or node.protocol == "vmess" or node.protocol == "vless" or node.protocol == "socks" or node.protocol == "shadowsocks" or node.protocol == "trojan") and {
 				sockopt = {
 					mark = 255,
+					tcpFastOpen = (node.tcp_fast_open == "1") and true or nil,
 					tcpMptcp = (node.tcpMptcp == "1") and true or nil,
 					dialerProxy = (fragment or noise) and "dialerproxy" or nil
 				},
@@ -178,9 +179,9 @@ function gen_outbound(flag, node, tag, proxy_table)
 									end
 									return r
 								end)() or {"/"},
-							headers = (node.tcp_guise_http_host or node.tcp_guise_http_user_agent) and {
+							headers = (node.tcp_guise_http_host or node.user_agent) and {
 								Host = node.tcp_guise_http_host,
-								["User-Agent"] = node.tcp_guise_http_user_agent and {node.tcp_guise_http_user_agent} or nil
+								["User-Agent"] = node.user_agent and {node.user_agent} or nil
 							} or nil
 						} or nil
 					}
@@ -202,8 +203,8 @@ function gen_outbound(flag, node, tag, proxy_table)
 				wsSettings = (node.transport == "ws") and {
 					path = node.ws_path or "/",
 					host = node.ws_host,
-					headers = node.ws_user_agent and {
-						["User-Agent"] = node.ws_user_agent
+					headers = node.user_agent and {
+						["User-Agent"] = node.user_agent
 					} or nil,
 					maxEarlyData = tonumber(node.ws_maxEarlyData) or nil,
 					earlyDataHeaderName = (node.ws_earlyDataHeaderName) and node.ws_earlyDataHeaderName or nil,
@@ -220,23 +221,41 @@ function gen_outbound(flag, node, tag, proxy_table)
 				httpupgradeSettings = (node.transport == "httpupgrade") and {
 					path = node.httpupgrade_path or "/",
 					host = node.httpupgrade_host,
-					headers =  node.httpupgrade_user_agent and {
-						["User-Agent"] = node.httpupgrade_user_agent
+					headers =  node.user_agent and {
+						["User-Agent"] = node.user_agent
 					} or nil
 				} or nil,
 				xhttpSettings = (node.transport == "xhttp") and {
 					mode = node.xhttp_mode or "auto",
 					path = node.xhttp_path or "/",
 					host = node.xhttp_host,
-					-- 如果包含 "extra" 节，取 "extra" 内的内容，否则直接赋值给 extra
-					extra = node.xhttp_extra and (function()
+					extra = (function()
+						local extra_tbl = {}
+						-- 解析 xhttp_extra 并做简单容错处理
+						if node.xhttp_extra then
 							local success, parsed = pcall(jsonc.parse, api.base64Decode(node.xhttp_extra))
-							if success then
-								return parsed.extra or parsed
-							else
-								return nil
+							if success and parsed then
+								extra_tbl = parsed.extra or parsed
+								for k, v in pairs(extra_tbl) do
+									if (type(v) == "table" and next(v) == nil) or v == nil then
+										extra_tbl[k] = nil
+									end
+								end
 							end
-						end)() or nil
+						end
+						-- 处理 User-Agent
+						if node.user_agent and node.user_agent ~= "" then
+							extra_tbl.headers = extra_tbl.headers or {}
+							if not extra_tbl.headers["User-Agent"] and not extra_tbl.headers["user-agent"] then
+								extra_tbl.headers["User-Agent"] = node.user_agent
+							end
+						end
+						-- 清理空的 headers
+						if extra_tbl.headers and next(extra_tbl.headers) == nil then
+							extra_tbl.headers = nil
+						end
+						return next(extra_tbl) ~= nil and extra_tbl or nil
+					end)()
 				} or nil,
 			} or nil,
 			settings = {
@@ -753,12 +772,31 @@ function gen_config(var)
 					end
 				end
 				if is_new_blc_node then
-					local blc_node = uci:get_all(appname, blc_node_id)
-					local outbound = gen_outbound(flag, blc_node, blc_node_tag, { fragment = xray_settings.fragment == "1" or nil, noise = xray_settings.noise == "1" or nil, run_socks_instance = not no_run })
-					if outbound then
-						outbound.tag = outbound.tag .. ":" .. blc_node.remarks
-						table.insert(outbounds, outbound)
-						valid_nodes[#valid_nodes + 1] = outbound.tag
+					local blc_node
+					if blc_node_id:find("Socks_") then
+						local socks_id = blc_node_id:sub(1 + #"Socks_")
+						local socks_node = uci:get_all(appname, socks_id) or nil
+						if socks_node then
+							blc_node = {
+								type = "Xray",
+								protocol = "socks",
+								address = "127.0.0.1",
+								port = socks_node.port,
+								transport = "tcp",
+								stream_security = "none",
+								remarks = "Socks_" .. socks_node.port
+							}
+						end
+					else
+						blc_node = uci:get_all(appname, blc_node_id)
+					end
+					if blc_node then
+						local outbound = gen_outbound(flag, blc_node, blc_node_tag, { fragment = xray_settings.fragment == "1" or nil, noise = xray_settings.noise == "1" or nil, run_socks_instance = not no_run })
+						if outbound then
+							outbound.tag = outbound.tag .. ":" .. blc_node.remarks
+							table.insert(outbounds, outbound)
+							valid_nodes[#valid_nodes + 1] = outbound.tag
+						end
 					end
 				end
 			end
@@ -778,17 +816,36 @@ function gen_config(var)
 					end
 				end
 				if is_new_node then
-					local fallback_node = uci:get_all(appname, fallback_node_id)
-					if fallback_node.protocol ~= "_balancing" then
-						local outbound = gen_outbound(flag, fallback_node, fallback_node_id, { fragment = xray_settings.fragment == "1" or nil, noise = xray_settings.noise == "1" or nil, run_socks_instance = not no_run })
-						if outbound then
-							outbound.tag = outbound.tag .. ":" .. fallback_node.remarks
-							table.insert(outbounds, outbound)
-							fallback_node_tag = outbound.tag
+					local fallback_node
+					if fallback_node_id:find("Socks_") then
+						local socks_id = fallback_node_id:sub(1 + #"Socks_")
+						local socks_node = uci:get_all(appname, socks_id) or nil
+						if socks_node then
+							fallback_node = {
+								type = "Xray",
+								protocol = "socks",
+								address = "127.0.0.1",
+								port = socks_node.port,
+								transport = "tcp",
+								stream_security = "none",
+								remarks = "Socks_" .. socks_node.port
+							}
 						end
 					else
-						if gen_balancer(fallback_node) then
-							fallback_node_tag = fallback_node_id
+						fallback_node = uci:get_all(appname, fallback_node_id)
+					end
+					if fallback_node then
+						if fallback_node.protocol ~= "_balancing" then
+							local outbound = gen_outbound(flag, fallback_node, fallback_node_id, { fragment = xray_settings.fragment == "1" or nil, noise = xray_settings.noise == "1" or nil, run_socks_instance = not no_run })
+							if outbound then
+								outbound.tag = outbound.tag .. ":" .. fallback_node.remarks
+								table.insert(outbounds, outbound)
+								fallback_node_tag = outbound.tag
+							end
+						else
+							if gen_balancer(fallback_node) then
+								fallback_node_tag = fallback_node_id
+							end
 						end
 					end
 				end
