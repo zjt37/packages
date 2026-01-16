@@ -77,6 +77,7 @@ for k, e in ipairs(api.get_valid_nodes()) do
 			id = e[".name"],
 			remark = e["remark"],
 			type = e["type"],
+			address = e["address"],
 			chain_proxy = e["chain_proxy"],
 			group = e["group"]
 		}
@@ -239,10 +240,13 @@ m.uci:foreach(appname, "shunt_rules", function(e)
 			local pt = s:option(ListValue, _n(e[".name"] .. "_proxy_tag"), string.format('* <a style="color:red">%s</a>', e.remarks .. " " .. translate("Preproxy")))
 			pt:value("", translate("Close"))
 			pt:value("main", translate("Preproxy Node"))
+			pt:depends("__hide__", "1")
 			for k, v in pairs(nodes_table) do
 				o:value(v.id, v.remark)
 				o.group[#o.group+1] = (v.group and v.group ~= "") and v.group or translate("default")
-				pt:depends({ [_n("protocol")] = "_shunt", [_n("preproxy_enabled")] = true, [_n(e[".name"])] = v.id })
+				if not api.is_local_ip(v.address) then  --本地节点禁止使用前置
+					pt:depends({ [_n("protocol")] = "_shunt", [_n("preproxy_enabled")] = true, [_n(e[".name"])] = v.id })
+				end
 			end
 		end
 	end
@@ -279,10 +283,13 @@ if #nodes_table > 0 then
 	local dpt = s:option(ListValue, _n("default_proxy_tag"), string.format('* <a style="color:red">%s</a>', translate("Default Preproxy")), translate("When using, localhost will connect this node first and then use this node to connect the default node."))
 	dpt:value("", translate("Close"))
 	dpt:value("main", translate("Preproxy Node"))
+	dpt:depends("__hide__", "1")
 	for k, v in pairs(nodes_table) do
 		o:value(v.id, v.remark)
 		o.group[#o.group+1] = (v.group and v.group ~= "") and v.group or translate("default")
-		dpt:depends({ [_n("protocol")] = "_shunt", [_n("preproxy_enabled")] = true, [_n("default_node")] = v.id })
+		if not api.is_local_ip(v.address) then
+			dpt:depends({ [_n("protocol")] = "_shunt", [_n("preproxy_enabled")] = true, [_n("default_node")] = v.id })
+		end
 	end
 end
 

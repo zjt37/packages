@@ -68,7 +68,6 @@ table td, .table .td {
 	padding: 0 !important;
 	line-height: inherit;
 	user-select: none;
-	color: #00000070;
 	align-self: stretch;
 }
 
@@ -910,7 +909,7 @@ table td, .table .td {
 						} else {
 							innerHTML = innerHTML.split("{{tcping}}").join('<span class="tcping_value" cbiid="{{id}}">---</span>');
 						}
-						innerHTML = innerHTML.split("{{url_test}}").join('<span class="ping"><a href="javascript:void(0)" onclick="javascript:urltest_node(\'{{id}}\', this)"><%:Test%></a></span>');
+						innerHTML = innerHTML.split("{{url_test}}").join('<span class="ping"><a href="javascript:void(0)" onclick="javascript:urltest_node(\'{{id}}\', this)" title="<%:TLS handshake test, latency for reference only%>"><%:Test%></a></span>');
 						innerHTML = innerHTML.split("{{id}}").join(o[".name"]);
 						innerHTML = innerHTML.split("{{group}}").join(o["group"] || "");
 						let node_remarks = get_remarks_name(o);
