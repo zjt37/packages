@@ -179,16 +179,17 @@ if has_xray then
 	o:value("1-5", "1-5")
 	o:depends("fragment", true)
 
-	o = s_xray:option(Value, "fragment_length", translate("Fragment Length"), translate("Fragmented packet length (byte)"))
-	o.default = "100-200"
+	o = s_xray:option(Value, "fragment_lengths", translate("Fragment Length"), translate("Fragmented packet length (byte)"))
+	o.default = "3-5,6-8,10-20"
 	o:depends("fragment", true)
 
-	o = s_xray:option(Value, "fragment_interval", translate("Fragment Interval"), translate("Fragmentation interval (ms)"))
+	o = s_xray:option(Value, "fragment_delays", translate("Fragment Delay"), translate("Fragmentation interval (ms)"))
 	o.default = "10-20"
 	o:depends("fragment", true)
 
 	o = s_xray:option(Value, "fragment_maxSplit", translate("Max Split"), translate("Limit the maximum number of splits."))
-	o.default = "100-200"
+	o.datatype = "or(uinteger,portrange)"
+	o.default = "3-6"
 	o:depends("fragment", true)
 
 	o = s_xray:option(Flag, "noise", translate("Noise"), translate("UDP noise, Under some circumstances it can bypass some UDP based protocol restrictions."))
@@ -233,22 +234,18 @@ if has_xray then
 
 	o = s_xray_noise:option(ListValue, "type", translate("Type"))
 	o:value("rand", "rand")
+	o:value("array", "array")
 	o:value("str", "str")
 	o:value("hex", "hex")
 	o:value("base64", "base64")
 
-	o = s_xray_noise:option(Value, "packet", translate("Packet"))
+	o = s_xray_noise:option(Value, "packet", translate("Packet | Rand Length"))
 	o.datatype = "minlength(1)"
 	o.rmempty = false
 
 	o = s_xray_noise:option(Value, "delay", translate("Delay (ms)"))
 	o.datatype = "or(uinteger,portrange)"
 	o.rmempty = false
-
-	o = s_xray_noise:option(ListValue, "applyTo", translate("IP Type"))
-	o:value("ip", "ALL")
-	o:value("ipv4", "IPv4")
-	o:value("ipv6", "IPv6")
 end
 
 if has_singbox then

@@ -19,6 +19,12 @@ const callRCInit = rpc.declare({
     expect: { '': {} }
 });
 
+const callFileWrite = rpc.declare({
+    object: 'file',
+    method: 'write',
+    params: ['path', 'data', 'append', 'mode']
+});
+
 const callNikkiVersion = rpc.declare({
     object: 'luci.nikki',
     method: 'version',
@@ -28,7 +34,7 @@ const callNikkiVersion = rpc.declare({
 const callNikkiProfile = rpc.declare({
     object: 'luci.nikki',
     method: 'profile',
-    params: [ 'defaults' ],
+    params: ['defaults'],
     expect: { '': {} }
 });
 
@@ -98,6 +104,31 @@ return baseclass.extend({
         return callRCInit('nikki', 'restart');
     },
 
+    writefile: function (path, data, mode) {
+        data = (data != null) ? String(data) : '';
+        mode = (mode != null) ? mode : 0o644;
+
+        const encoder = new TextEncoder();
+        const decoder = new TextDecoder();
+        const chunkSize = 8 * 1024;
+
+        const bytes = encoder.encode(data);
+
+        if (bytes.length <= chunkSize) {
+            return callFileWrite(path, data, false, mode);
+        }
+
+        let promise = Promise.resolve();
+        for(let offset = 0; offset < bytes.length; offset += chunkSize) {
+            const chunkBytes = bytes.slice(offset, Math.min(offset + chunkSize, bytes.length));
+            const chunk = decoder.decode(chunkBytes);
+            const append = offset > 0;
+            promise = promise.then(() => callFileWrite(path, chunk, append, mode));
+        }
+
+        return promise;
+    },
+
     version: function () {
         return callNikkiVersion();
     },
@@ -115,28 +146,46 @@ return baseclass.extend({
     },
 
     openDashboard: async function () {
-        const profile = await callNikkiProfile({ 'external-ui-name': null, 'external-controller': null, 'secret': null });
+        const profile = await callNikkiProfile({
+            'external-ui-name': null,
+            'external-controller': null,
+            'external-controller-tls': null,
+            'secret': null
+        });
         const uiName = profile['external-ui-name'];
         const apiListen = profile['external-controller'];
+        const apiTLSListen = profile['external-controller-tls'];
         const apiSecret = profile['secret'] ?? '';
-        if (!apiListen) {
+        if (!apiListen && !apiTLSListen) {
             return Promise.reject('API has not been configured');
         }
-        const apiPort = apiListen.substring(apiListen.lastIndexOf(':') + 1);
+
+        let protocol;
+        let port;
+        if (apiTLSListen) {
+            protocol = 'https';
+            port = apiTLSListen.substring(apiTLSListen.lastIndexOf(':') + 1);
+        } else {
+            protocol = 'http';
+            port = apiListen.substring(apiListen.lastIndexOf(':') + 1);
+        }
+
         const params = {
             host: window.location.hostname,
             hostname: window.location.hostname,
-            port: apiPort,
+            port: port,
             secret: apiSecret
         };
         const query = new URLSearchParams(params).toString();
         let url;
         if (uiName) {
-            url = `http://${window.location.hostname}:${apiPort}/ui/${uiName}/?${query}`;
+            url = `${protocol}://${window.location.hostname}:${port}/ui/${uiName}/?${query}`;
         } else {
-            url = `http://${window.location.hostname}:${apiPort}/ui/?${query}`;
+            url = `${protocol}://${window.location.hostname}:${port}/ui/?${query}`;
         }
+
         setTimeout(function () { window.open(url, '_blank') }, 0);
+
         return Promise.resolve();
     },
 
@@ -165,11 +214,11 @@ return baseclass.extend({
     },
 
     clearAppLog: function () {
-        return fs.write(this.appLogPath);
+        return this.writefile(this.appLogPath, '');
     },
 
     clearCoreLog: function () {
-        return fs.write(this.coreLogPath);
+        return this.writefile(this.coreLogPath, '');
     },
 
     debug: function () {

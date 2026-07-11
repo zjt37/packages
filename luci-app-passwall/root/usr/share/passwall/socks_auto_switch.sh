@@ -1,24 +1,14 @@
 #!/bin/sh
 
-CONFIG=passwall
-LOG_FILE=/tmp/log/$CONFIG.log
-LOCK_FILE_DIR=/tmp/lock
-LOG_EVENT_FILTER=
-LOG_EVENT_CMD=
+. /usr/share/passwall/utils.sh
+APP_FILE=${APP_PATH}/app.sh
+
 flag=0
 
-echolog() {
-	local d="$(date "+%Y-%m-%d %H:%M:%S")"
-	local c="$1"
-	echo -e "$d: $c" >> $LOG_FILE
-	[ -n "$LOG_EVENT_CMD" ] && [ -n "$(echo -n $c |grep -E "$LOG_EVENT_FILTER")" ] && {
-		$(echo -n $LOG_EVENT_CMD |sed "s/%s/$c/g")
-	}
-}
-
-config_n_get() {
-	local ret=$(uci -q get "${CONFIG}.${1}.${2}" 2>/dev/null)
-	echo "${ret:=$3}"
+check_process() {
+	while busybox pgrep -af "${CONFIG}/" | grep -E 'app\.sh.*(start|stop)|nftables\.sh|iptables\.sh|subscribe\.lua' >/dev/null; do
+		sleep 6s
+	done
 }
 
 test_url() {
@@ -64,15 +54,16 @@ test_node() {
 	local node_id=$1
 	local _type=$(echo $(config_n_get ${node_id} type) | tr 'A-Z' 'a-z')
 	[ -n "${_type}" ] && {
-		local _tmp_port=$(/usr/share/${CONFIG}/app.sh get_new_port 61080 tcp,udp)
-		/usr/share/${CONFIG}/app.sh run_socks flag="test_node_${node_id}" node=${node_id} bind=127.0.0.1 socks_port=${_tmp_port} config_file=test_node_${node_id}.json
+		check_process
+		local _tmp_port=$(get_new_port 48800 tcp,udp)
+		NO_REC_PROCESS=1 $APP_FILE run_socks flag="test_node_${node_id}" node=${node_id} bind=127.0.0.1 socks_port=${_tmp_port} config_file=test_node_${node_id}.json
+		sleep 2s
 		local curlx="socks5h://127.0.0.1:${_tmp_port}"
-		sleep 1s
 		local _proxy_status=$(test_url "${probe_url}" ${retry_num} ${connect_timeout} "-x $curlx")
 		# 结束 SS 插件进程
 		local pid_file="/tmp/etc/${CONFIG}/test_node_${node_id}_plugin.pid"
 		[ -s "$pid_file" ] && kill -9 "$(head -n 1 "$pid_file")" >/dev/null 2>&1
-		pgrep -af "test_node_${node_id}" | awk '! /socks_auto_switch\.sh/{print $1}' | xargs kill -9 >/dev/null 2>&1
+		busybox pgrep -af "test_node_${node_id}" | awk '! /socks_auto_switch\.sh/{print $1}' | xargs kill -9 >/dev/null 2>&1
 		rm -rf /tmp/etc/${CONFIG}/test_node_${node_id}*.*
 		if [ "${_proxy_status}" -eq 200 ]; then
 			return 0
@@ -86,8 +77,8 @@ test_auto_switch() {
 	local b_nodes=$1
 	local now_node=$2
 	[ -z "$now_node" ] && {
-		if [ -n "$(/usr/share/${CONFIG}/app.sh get_cache_var "socks_${id}")" ]; then
-			now_node=$(/usr/share/${CONFIG}/app.sh get_cache_var "socks_${id}")
+		if [ -n "$(get_cache_var "socks_${id}")" ]; then
+			now_node=$(get_cache_var "socks_${id}")
 		else
 			#echolog "Socks切换检测：未知错误"
 			return 1
@@ -108,11 +99,12 @@ test_auto_switch() {
 	if [ "$restore_switch" = "1" ] && [ -n "$main_node" ] && [ "$now_node" != "$main_node" ]; then
 		test_node ${main_node}
 		[ $? -eq 0 ] && {
+			check_process
 			#主节点正常，切换到主节点
-			echolog "Socks切换检测：${id}主节点【$(config_n_get $main_node type)：[$(config_n_get $main_node remarks)]】正常，切换到主节点！"
-			/usr/share/${CONFIG}/app.sh socks_node_switch flag=${id} new_node=${main_node}
+			echolog "Socks切换检测：端口[${socks_port}] 主节点【$(config_n_get $main_node type)：[$(config_n_get $main_node remarks)]】正常，切换到主节点！"
+			NO_REC_PROCESS=1 $APP_FILE socks_node_switch flag=${id} new_node=${main_node}
 			[ $? -eq 0 ] && {
-				echolog "Socks切换检测：${id}节点切换完毕！"
+				echolog "Socks切换检测：端口[${socks_port}] 节点切换完毕！"
 			}
 			return 0
 		}
@@ -139,7 +131,7 @@ test_auto_switch() {
 			new_node=$([ "$now_node" = "$main_node" ] && echo "$b_nodes" || echo "$main_node")
 			msg="切换到$([ "$now_node" = "$main_node" ] && echo 备用节点 || echo 主节点)检测！"
 		fi
-		echolog "Socks切换检测：${id}【$(config_n_get $now_node type)：[$(config_n_get $now_node remarks)]】异常，$msg"
+		echolog "Socks切换检测：端口[${socks_port}]【$(config_n_get $now_node type)：[$(config_n_get $now_node remarks)]】异常，$msg"
 		test_node ${new_node}
 		if [ $? -eq 0 ]; then
 #			[ "$restore_switch" = "0" ] && {
@@ -147,10 +139,11 @@ test_auto_switch() {
 #				[ -z "$(echo $b_nodes | grep $main_node)" ] && uci add_list $CONFIG.${id}.autoswitch_backup_node=$main_node
 #				uci commit $CONFIG
 #			}
-			echolog "Socks切换检测：${id}【$(config_n_get $new_node type)：[$(config_n_get $new_node remarks)]】正常，切换到此节点！"
-			/usr/share/${CONFIG}/app.sh socks_node_switch flag=${id} new_node=${new_node}
+			check_process
+			echolog "Socks切换检测：端口[${socks_port}]【$(config_n_get $new_node type)：[$(config_n_get $new_node remarks)]】正常，切换到此节点！"
+			NO_REC_PROCESS=1 $APP_FILE socks_node_switch flag=${id} new_node=${new_node}
 			[ $? -eq 0 ] && {
-				echolog "Socks切换检测：${id}节点切换完毕！"
+				echolog "Socks切换检测：端口[${socks_port}] 节点切换完毕！"
 			}
 			return 0
 		else
@@ -161,7 +154,7 @@ test_auto_switch() {
 
 start() {
 	id=$1
-	LOCK_FILE=${LOCK_FILE_DIR}/${CONFIG}_socks_auto_switch_${id}.lock
+	LOCK_FILE=${LOCK_PATH}/${CONFIG}_socks_auto_switch_${id}.lock
 	LOG_EVENT_FILTER=$(uci -q get "${CONFIG}.global[0].log_event_filter" 2>/dev/null)
 	LOG_EVENT_CMD=$(uci -q get "${CONFIG}.global[0].log_event_cmd" 2>/dev/null)
 	main_node=$(config_n_get $id node)
@@ -186,11 +179,7 @@ start() {
 			sleep 6s
 			continue
 		}
-		pgrep -af "${CONFIG}/" | awk '/app\.sh.*(start|stop)/ || /nftables\.sh/ || /iptables\.sh/ { found = 1 } END { exit !found }' && {
-			# 特定任务执行中不检测
-			sleep 6s
-			continue
-		}
+		check_process
 		touch $LOCK_FILE
 		test_auto_switch "$backup_node"
 		rm -f $LOCK_FILE

@@ -9,6 +9,7 @@ PROG="/usr/bin/mihomo"
 . "$IPKG_INSTROOT/etc/nikki/scripts/include.sh"
 
 extra_command 'update_subscription' 'Update subscription by section id'
+extra_command 'clear_logs' 'Clear logs if size exceeds the limit'
 
 boot_func() {
 	# prepare files
@@ -28,7 +29,7 @@ boot_func() {
 }
 
 boot() {
-	boot_func &
+	boot_func < /dev/null > /dev/null 2>&1 &
 }
 
 start_service() {
@@ -55,9 +56,9 @@ start_service() {
 	fi
 	# get config
 	## app config
-	local scheduled_restart cron_expression profile test_profile core_only
+	local scheduled_restart scheduled_restart_cron profile test_profile core_only
 	config_get_bool scheduled_restart "config" "scheduled_restart" 0
-	config_get cron_expression "config" "cron_expression"
+	config_get scheduled_restart_cron "config" "scheduled_restart_cron"
 	config_get profile "config" "profile"
 	config_get_bool test_profile "config" "test_profile" 0
 	config_get_bool core_only "config" "core_only" 0
@@ -66,7 +67,9 @@ start_service() {
 	local fast_reload
 	config_get_bool fast_reload "procd" "fast_reload" 0
 	### rlimit
-	local rlimit_address_space_soft rlimit_address_space_hard rlimit_data_soft rlimit_data_hard rlimit_stack_soft rlimit_stack_hard rlimit_nofile_soft rlimit_nofile_hard
+	local rlimit_nproc_soft rlimit_nproc_hard rlimit_address_space_soft rlimit_address_space_hard rlimit_data_soft rlimit_data_hard rlimit_stack_soft rlimit_stack_hard rlimit_nofile_soft rlimit_nofile_hard
+	config_get rlimit_nproc_soft "procd" "rlimit_nproc_soft" "$(ulimit -Su)"
+	config_get rlimit_nproc_hard "procd" "rlimit_nproc_hard" "$(ulimit -Hu)"
 	config_get rlimit_address_space_soft "procd" "rlimit_address_space_soft"
 	config_get rlimit_address_space_hard "procd" "rlimit_address_space_hard"
 	config_get rlimit_data_soft "procd" "rlimit_data_soft"
@@ -76,7 +79,9 @@ start_service() {
 	config_get rlimit_nofile_soft "procd" "rlimit_nofile_soft" "$(ulimit -Sn)"
 	config_get rlimit_nofile_hard "procd" "rlimit_nofile_hard" "$(ulimit -Hn)"
 	### environment variable
-	local env_safe_paths env_disable_loopback_detector env_disable_quic_go_gso env_disable_quic_go_ecn env_skip_system_ipv6_check
+	local env_go_max_procs env_go_mem_limit env_safe_paths env_disable_loopback_detector env_disable_quic_go_gso env_disable_quic_go_ecn env_skip_system_ipv6_check
+	config_get env_go_max_procs "procd" "env_go_max_procs"
+	config_get env_go_mem_limit "procd" "env_go_mem_limit"
 	config_get env_safe_paths "procd" "env_safe_paths"
 	config_get_bool env_disable_loopback_detector "procd" "env_disable_loopback_detector" 0
 	config_get_bool env_disable_quic_go_gso "procd" "env_disable_quic_go_gso" 0
@@ -97,6 +102,11 @@ start_service() {
 	### mixin file content
 	local mixin_file_content
 	config_get_bool mixin_file_content "mixin" "mixin_file_content" 0
+	## core config
+	local redirect_listener_name tproxy_listener_name tun_listener_name
+	config_get redirect_listener_name "core" "redirect_listener_name"
+	config_get tproxy_listener_name "core" "tproxy_listener_name"
+	config_get tun_listener_name "core" "tun_listener_name"
 	## proxy config
 	local proxy_enabled ipv4_dns_hijack ipv6_dns_hijack tcp_mode udp_mode
 	config_get_bool proxy_enabled "proxy" "enabled" 0
@@ -104,6 +114,10 @@ start_service() {
 	config_get_bool ipv6_dns_hijack "proxy" "ipv6_dns_hijack" 0
 	config_get tcp_mode "proxy" "tcp_mode"
 	config_get udp_mode "proxy" "udp_mode"
+	## log config
+	local log_scheduled_clear log_scheduled_clear_cron
+	config_get_bool log_scheduled_clear "log" "scheduled_clear" 0
+	config_get log_scheduled_clear_cron "log" "scheduled_clear_cron"
 	# get profile
 	local profile_type; profile_type=$(echo "$profile" | cut -d ':' -f 1)
 	local profile_id; profile_id=$(echo "$profile" | cut -d ':' -f 2)
@@ -169,9 +183,17 @@ start_service() {
 			yq -M -i 'del(.sniffer.sniff)' "$RUN_PROFILE_PATH"
 		fi
 		if [ "$mixin_file_content" = 0 ]; then
-			ucode -S "$MIXIN_UC" | yq -M -p json -o yaml | yq -M -i ea '... comments="" | . as $item ireduce ({}; . * $item ) | .proxies = .nikki-proxies + .proxies | del(.nikki-proxies) | .proxy-groups = .nikki-proxy-groups + .proxy-groups | del(.nikki-proxy-groups) | .rules = .nikki-rules + .rules | del(.nikki-rules)' "$RUN_PROFILE_PATH" -
+			ucode -S "$MIXIN_UC" | yq -M -p json -o yaml | yq -M -i eval-all '... comments="" | . as $item ireduce ({}; . * $item ) | .proxies = .nikki-proxies + .proxies | del(.nikki-proxies) | .proxy-groups = .nikki-proxy-groups + .proxy-groups | del(.nikki-proxy-groups) | .rules = .nikki-rules + .rules | del(.nikki-rules) | explode(.)' "$RUN_PROFILE_PATH" -
 		elif [ "$mixin_file_content" = 1 ]; then
-			ucode -S "$MIXIN_UC" | yq -M -p json -o yaml | yq -M -i ea '... comments="" | . as $item ireduce ({}; . * $item ) | .proxies = .nikki-proxies + .proxies | del(.nikki-proxies) | .proxy-groups = .nikki-proxy-groups + .proxy-groups | del(.nikki-proxy-groups) | .rules = .nikki-rules + .rules | del(.nikki-rules)' "$RUN_PROFILE_PATH" "$MIXIN_FILE_PATH" -
+			ucode -S "$MIXIN_UC" | yq -M -p json -o yaml | yq -M -i eval-all '... comments="" | . as $item ireduce ({}; . * $item ) | .proxies = .nikki-proxies + .proxies | del(.nikki-proxies) | .proxy-groups = .nikki-proxy-groups + .proxy-groups | del(.nikki-proxy-groups) | .rules = .nikki-rules + .rules | del(.nikki-rules) | explode(.)' "$RUN_PROFILE_PATH" "$MIXIN_FILE_PATH" -
+		fi
+		if [ "$proxy_enabled" = 1 ]; then
+			if yq -M -e 'has("tun")' "$RUN_PROFILE_PATH" > /dev/null 2>&1; then
+				yq -M -i '(.tun) |= (.auto-route = false | .auto-redirect = false | .auto-detect-interface = false | .disable-icmp-forwarding = true)' "$RUN_PROFILE_PATH"
+			fi
+			if yq -M -e 'has("listeners")' "$RUN_PROFILE_PATH" > /dev/null 2>&1; then
+				yq -M -i '(.listeners[] | select(.type == "tun")) |= (.auto-route = false | .auto-redirect = false | .auto-detect-interface = false | .disable-icmp-forwarding = true)' "$RUN_PROFILE_PATH"
+			fi
 		fi
 	fi
 	# check profile
@@ -186,25 +208,25 @@ start_service() {
 			fi
 		fi
 		if [ "$tcp_mode" = "redirect" ]; then
-			if yq -M -e '(has("redir-port")) | not' "$RUN_PROFILE_PATH" > /dev/null 2>&1; then
+			if yq -M -e "(has(\"redir-port\") or (has(\"listeners\") and .listeners | any_c(.name == \"$redirect_listener_name\" and .type == \"redir\"))) | not" "$RUN_PROFILE_PATH" > /dev/null 2>&1; then
 				log "Profile" "Check failed."
-				log "Profile" "Redirect Port should be defined."
+				log "Profile" "Redirect Port/Listener should be defined."
 				log "App" "Exit."
 				return
 			fi
 		fi
 		if [ "$tcp_mode" = "tproxy" ] || [ "$udp_mode" = "tproxy" ]; then
-			if yq -M -e '(has("tproxy-port")) | not' "$RUN_PROFILE_PATH" > /dev/null 2>&1; then
+			if yq -M -e "(has(\"tproxy-port\") or (has(\"listeners\") and .listeners | any_c(.name == \"$tproxy_listener_name\" and .type == \"tproxy\"))) | not" "$RUN_PROFILE_PATH" > /dev/null 2>&1; then
 				log "Profile" "Check failed."
-				log "Profile" "TPROXY Port should be defined."
+				log "Profile" "TPROXY Port/Listener should be defined."
 				log "App" "Exit."
 				return
 			fi
 		fi
 		if [ "$tcp_mode" = "tun" ] || [ "$udp_mode" = "tun" ]; then
-			if yq -M -e '(has("tun") and (.tun | .enable) and (.tun | has("device"))) | not' "$RUN_PROFILE_PATH" > /dev/null 2>&1; then
+			if yq -M -e "(has(\"tun\") and (.tun | .enable) and (.tun | has(\"device\"))) or (has(\"listeners\") and .listeners | any_c(.name == \"$tun_listener_name\" and .type == \"tun\" and has(\"device\")))) | not" "$RUN_PROFILE_PATH" > /dev/null 2>&1; then
 				log "Profile" "Check failed."
-				log "Profile" "TUN should be enabled and device should be defined."
+				log "Profile" "TUN should be defined."
 				log "App" "Exit."
 				return
 			fi
@@ -229,26 +251,41 @@ start_service() {
 
 	procd_set_param command /bin/sh -c "$PROG -d $RUN_DIR >> $CORE_LOG_PATH 2>&1"
 	procd_set_param file "$RUN_PROFILE_PATH"
-	procd_append_param env SAFE_PATHS="$env_safe_paths"
-	procd_append_param env DISABLE_LOOPBACK_DETECTOR="$env_disable_loopback_detector"
-	procd_append_param env QUIC_GO_DISABLE_GSO="$env_disable_quic_go_gso"
-	procd_append_param env QUIC_GO_DISABLE_ECN="$env_disable_quic_go_ecn"
-	procd_append_param env SKIP_SYSTEM_IPV6_CHECK="$env_skip_system_ipv6_check"
 	if [ "$fast_reload" = 1 ]; then
 		procd_set_param reload_signal HUP
 	fi
 	procd_set_param pidfile "$PID_FILE_PATH"
 	procd_set_param respawn
+
+	procd_append_param limits nproc="${rlimit_nproc_soft} ${rlimit_nproc_hard}"
 	procd_append_param limits as="${rlimit_address_space_soft:-unlimited} ${rlimit_address_space_hard:-unlimited}"
 	procd_append_param limits data="${rlimit_data_soft:-unlimited} ${rlimit_data_hard:-unlimited}"
 	procd_append_param limits stack="${rlimit_stack_soft:-unlimited} ${rlimit_stack_hard:-unlimited}"
 	procd_append_param limits nofile="${rlimit_nofile_soft} ${rlimit_nofile_hard}"
 
+	procd_append_param env GOMAXPROCS="$env_go_max_procs"
+	procd_append_param env GOMEMLIMIT="$env_go_mem_limit"
+
+	procd_append_param env SAFE_PATHS="$env_safe_paths"
+	procd_append_param env DISABLE_LOOPBACK_DETECTOR="$env_disable_loopback_detector"
+	procd_append_param env QUIC_GO_DISABLE_GSO="$env_disable_quic_go_gso"
+	procd_append_param env QUIC_GO_DISABLE_ECN="$env_disable_quic_go_ecn"
+	procd_append_param env SKIP_SYSTEM_IPV6_CHECK="$env_skip_system_ipv6_check"
+
 	procd_close_instance
 	# cron
-	if [ "$scheduled_restart" = 1 ] && [ -n "$cron_expression" ]; then
+	local reload_cron; reload_cron=0
+	if [ "$scheduled_restart" = 1 ] && [ -n "$scheduled_restart_cron" ]; then
 		log "App" "Set scheduled restart."
-		echo "$cron_expression /etc/init.d/nikki restart #nikki" >> "/etc/crontabs/root"
+		echo "$scheduled_restart_cron /etc/init.d/nikki restart #nikki scheduled restart" >> "/etc/crontabs/root"
+		reload_cron=1
+	fi
+	if [ "$log_scheduled_clear" = 1 ] && [ -n "$log_scheduled_clear_cron" ]; then
+		log "App" "Set log scheduled clear."
+		echo "$log_scheduled_clear_cron /etc/init.d/nikki clear_logs #nikki log scheduled clear" >> "/etc/crontabs/root"
+		reload_cron=1
+	fi
+	if [ "$reload_cron" = 1 ]; then
 		/etc/init.d/cron restart
 	fi
 	# set started flag
@@ -273,6 +310,9 @@ service_started() {
 	## app config
 	local core_only
 	config_get_bool core_only "config" "core_only" 0
+	## core
+	local tun_listener_name
+	config_get tun_listener_name "core" "tun_listener_name"
 	## proxy config
 	### general
 	local tcp_mode udp_mode ipv4_proxy ipv6_proxy tun_timeout tun_interval
@@ -283,7 +323,7 @@ service_started() {
 	config_get tun_timeout "proxy" "tun_timeout" 30
 	config_get tun_interval "proxy" "tun_interval" 1
 	## routing config
-	local tproxy_fw_mark tproxy_fw_mask tun_fw_mark tun_fw_mask tproxy_rule_pref tun_rule_pref tproxy_route_table tun_route_table cgroup_id cgroup_name
+	local tproxy_fw_mark tproxy_fw_mask tun_fw_mark tun_fw_mask tproxy_rule_pref tun_rule_pref tproxy_route_table tun_route_table cgroup_id cgroup_name dummy_device
 	config_get tproxy_fw_mark "routing" "tproxy_fw_mark" "0x80"
 	config_get tproxy_fw_mask "routing" "tproxy_fw_mask" "0xFF"
 	config_get tun_fw_mark "routing" "tun_fw_mark" "0x81"
@@ -294,6 +334,7 @@ service_started() {
 	config_get tun_route_table "routing" "tun_route_table" "81"
 	config_get cgroup_id "routing" "cgroup_id" "0x12061206"
 	config_get cgroup_name "routing" "cgroup_name" "nikki"
+	config_get dummy_device "routing" "dummy_device" "nikki-dummy"
 	# prepare config
 	local tproxy_enable; tproxy_enable=0
 	if [ "$tcp_mode" = "tproxy" ] || [ "$udp_mode" = "tproxy" ]; then
@@ -303,7 +344,9 @@ service_started() {
 	if [ "$tcp_mode" = "tun" ] || [ "$udp_mode" = "tun" ]; then
 		tun_enable=1
 	fi
-	local tun_device; tun_device=$(yq -M '.tun.device' "$RUN_PROFILE_PATH")
+	local dns_mode; dns_mode=$(yq -M '.dns.enhanced-mode // ""' "$RUN_PROFILE_PATH")
+	local fake_ip6_range; fake_ip6_range=$(yq -M '.dns.fake-ip-range6 // ""' "$RUN_PROFILE_PATH")
+	local tun_device; tun_device=$(yq -M "(.tun | select(.enable) | .device) // (.listeners[] | select(.name == \"$tun_listener_name\" and .type == \"tun\") | .device)" "$RUN_PROFILE_PATH")
 	if [ "$core_only" = 0 ]; then
 		# proxy
 		log "Proxy" "Enabled."
@@ -372,6 +415,11 @@ service_started() {
 			fi
 			$FIREWALL_INCLUDE_SH
 		fi
+		if [ "$dns_mode" = "fake-ip" ] && [ -n "$fake_ip6_range" ]; then
+			ip link add "$dummy_device" type dummy
+			ip link set dev "$dummy_device" up
+			ip -6 route add "$fake_ip6_range" dev "$dummy_device"
+		fi
 		# hijack
 		utpl -S "$HIJACK_UT" | nft -f -
 		# check hijack
@@ -398,15 +446,23 @@ service_triggers() {
 }
 
 cleanup() {
-	# clear log
-	clear_log
 	# load config
 	config_load nikki
 	# get config
+	## log config
+	local log_clear_at_stop
+	config_get_bool log_clear_at_stop "log" "clear_at_stop" 0
 	## routing config
-	local tproxy_route_table tun_route_table
+	local tproxy_route_table tun_route_table dummy_device
 	config_get tproxy_route_table "routing" "tproxy_route_table" "80"
 	config_get tun_route_table "routing" "tun_route_table" "81"
+	config_get dummy_device "routing" "dummy_device" "nikki-dummy"
+	# clear logs if needed
+	if [  "$log_clear_at_stop" = 1 ]; then
+		echo -n > "$APP_LOG_PATH"
+		echo -n > "$CORE_LOG_PATH"
+		log "Log" "Logs are cleared due to clear at stop is enabled."
+	fi
 	# delete routing policy
 	ip -4 rule del table "$tproxy_route_table" > /dev/null 2>&1
 	ip -4 rule del table "$tun_route_table" > /dev/null 2>&1
@@ -417,6 +473,8 @@ cleanup() {
 	ip -4 route flush table "$tun_route_table" > /dev/null 2>&1
 	ip -6 route flush table "$tproxy_route_table" > /dev/null 2>&1
 	ip -6 route flush table "$tun_route_table" > /dev/null 2>&1
+	# delete dummy device
+	ip -6 link del "$dummy_device" > /dev/null 2>&1
 	# delete hijack
 	nft delete table inet nikki > /dev/null 2>&1
 	local handles handle
@@ -441,6 +499,41 @@ cleanup() {
 	# delete cron
 	sed -i "/#nikki/d" "/etc/crontabs/root" > /dev/null 2>&1
 	/etc/init.d/cron restart
+}
+
+clear_logs() {
+	# load config
+	config_load nikki
+	# get config
+	## log config
+	local log_scheduled_clear_size_limit log_scheduled_clear_size_limit_unit
+	config_get log_scheduled_clear_size_limit "log" "scheduled_clear_size_limit" 1
+	config_get log_scheduled_clear_size_limit_unit "log" "scheduled_clear_size_limit_unit" "MB"
+	# prepare config
+	local log_scheduled_clear_size_limit_in_bytes; log_scheduled_clear_size_limit_in_bytes=0
+	case "$log_scheduled_clear_size_limit_unit" in
+		B)
+			log_scheduled_clear_size_limit_in_bytes=$((log_scheduled_clear_size_limit))
+		;;
+		KB)
+			log_scheduled_clear_size_limit_in_bytes=$((log_scheduled_clear_size_limit * 1024))
+		;;
+		MB)
+			log_scheduled_clear_size_limit_in_bytes=$((log_scheduled_clear_size_limit * 1024 * 1024))
+		;;
+		GB)
+			log_scheduled_clear_size_limit_in_bytes=$((log_scheduled_clear_size_limit * 1024 * 1024 * 1024))
+		;;
+	esac
+	# clear logs
+	if [ -f "$APP_LOG_PATH" ] && [ "$(wc -c < "$APP_LOG_PATH")" -ge "$log_scheduled_clear_size_limit_in_bytes" ]; then
+		echo -n > "$APP_LOG_PATH"
+		log "Log" "App log is cleared due to scheduled clear and exceeding size limits."
+	fi
+	if [ -f "$CORE_LOG_PATH" ] && [ "$(wc -c < "$CORE_LOG_PATH")" -ge "$log_scheduled_clear_size_limit_in_bytes" ]; then
+		echo -n > "$CORE_LOG_PATH"
+		log "Log" "Core log is cleared due to scheduled clear and exceeding size limits."
+	fi
 }
 
 update_subscription() {
@@ -489,7 +582,7 @@ update_subscription() {
 		if [ ! -f "$subscription_info_file" ] && grep -q -i "subscription-userinfo:" "$subscription_header_tmpfile"; then
 			subscription_info_file="$subscription_header_tmpfile"
 		fi
-		if yq -p yaml -o yaml -e 'has("proxies") or has("proxy-providers")' "$subscription_tmpfile" > /dev/null 2>&1; then
+		if yq -M -p yaml -o yaml -e 'has("proxies") or has("proxy-providers")' "$subscription_tmpfile" > /dev/null 2>&1; then
 			log "Profile" "Subscription is valid."
 			success=1
 		else
