@@ -19,15 +19,16 @@
 -%>
 
 <%
-	local ver = require "luci.version"
 	local sys  = require "luci.sys"
 	local util = require "luci.util"
 	local http = require "luci.http"
 	local disp = require "luci.dispatcher"
 
-	local boardinfo = util.ubus("system", "board")
-	local boardinfo={}
-	boardinfo.hostname=sys.hostname()
+	local ver = require "luci.version"
+	local luaversion = ver.luciversion or "18.06"
+
+	local boardinfo = {}
+	boardinfo.hostname = sys.hostname()
 	
 	local request  = disp.context.path
 	local request2 = disp.context.request
@@ -39,8 +40,6 @@
 
 	local tree = disp.node()
 	local node = disp.context.dispatched
-
-	local categories = disp.node_childs(tree)
 
 	local c = tree
 	local i, r
