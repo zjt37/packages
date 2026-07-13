@@ -5,9 +5,9 @@
 
 include $(TOPDIR)/rules.mk
 
-LUCI_TITLE:=Atmaterial_new kenzo
+LUCI_TITLE:=Atmaterial
 LUCI_DEPENDS:=
-PKG_NAME:=luci-theme-atmaterial_new
+PKG_NAME:=luci-theme-atmaterial
 PKG_VERSION:=1.2
 PKG_RELEASE:=2
 
