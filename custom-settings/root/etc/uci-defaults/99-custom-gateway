@@ -3,12 +3,6 @@ uci batch <<-EOF
 	set network.lan.gateway='192.168.2.2'
 	set network.lan.dns='223.5.5.5'
 	delete network.lan.ip6assign
-	set network.wan=interface
-	set network.wan.proto=none
-	set network.wan.disabled=1
-	set network.wan6=interface
-	set network.wan6.proto=none
-	set network.wan6.disabled=1
 	delete network.globals.ula_prefix
 	commit network
 	set dhcp.@dnsmasq[0].server='223.5.5.5'
