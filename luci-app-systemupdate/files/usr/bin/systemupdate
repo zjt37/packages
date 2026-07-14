@@ -3,6 +3,7 @@
 REPO="zjt37/zheng"
 API_URL="https://api.github.com/repos/${REPO}/releases/latest"
 DOWNLOAD_DIR="/tmp/firmware"
+OVERLAY_BACKUP="/tmp/overlay_backup"
 
 check_update() {
     echo "=== 检查更新 ==="
@@ -34,13 +35,11 @@ check_update() {
     echo "固件信息获取成功，可以开始更新"
 }
 
-do_update() {
-    echo "=== 开始更新 ==="
-    
+download_firmware() {
     mkdir -p "${DOWNLOAD_DIR}"
     
     echo "正在下载固件..."
-    curl -L -o "${DOWNLOAD_DIR}/openwrt.img" "${ASSET_URL}"
+    curl -L --progress-bar -o "${DOWNLOAD_DIR}/openwrt.img" "${ASSET_URL}"
     
     if [ $? -ne 0 ]; then
         echo "错误: 下载失败"
@@ -56,9 +55,60 @@ do_update() {
     fi
     
     echo "文件校验通过"
-    echo "正在准备刷入..."
+    return 0
+}
+
+backup_overlay() {
+    echo "=== 备份配置 ==="
+    echo "正在备份 /overlay..."
     
-    # Get current root device
+    rm -rf "${OVERLAY_BACKUP}"
+    mkdir -p "${OVERLAY_BACKUP}"
+    
+    if [ -d "/overlay" ]; then
+        tar -czf "${OVERLAY_BACKUP}/overlay_backup.tar.gz" -C / overlay 2>/dev/null
+        if [ $? -eq 0 ]; then
+            echo "配置备份完成"
+            return 0
+        else
+            echo "警告: 备份可能不完整"
+            return 0
+        fi
+    else
+        echo "警告: 未找到 /overlay 目录"
+        return 0
+    fi
+}
+
+restore_overlay() {
+    echo "=== 恢复配置 ==="
+    
+    if [ ! -f "${OVERLAY_BACKUP}/overlay_backup.tar.gz" ]; then
+        echo "警告: 未找到备份文件，跳过恢复"
+        return 0
+    fi
+    
+    echo "正在等待系统启动..."
+    sleep 30
+    
+    echo "正在恢复配置..."
+    tar -xzf "${OVERLAY_BACKUP}/overlay_backup.tar.gz" -C / 2>/dev/null
+    
+    if [ $? -eq 0 ]; then
+        echo "配置恢复完成"
+    else
+        echo "警告: 部分配置恢复失败"
+    fi
+    
+    return 0
+}
+
+fresh_install() {
+    echo "=== 全新安装 ==="
+    
+    download_firmware
+    if [ $? -ne 0 ]; then return 1; fi
+    
     ROOT_DEV=$(mount | grep ' / ' | awk '{print $1}' | sed 's/[0-9]*$//')
     
     if [ -z "$ROOT_DEV" ]; then
@@ -67,9 +117,8 @@ do_update() {
     fi
     
     echo "当前根设备: ${ROOT_DEV}"
-    echo "正在刷入固件，请勿断电..."
+    echo "正在刷入固件（全新安装），请勿断电..."
     
-    # Flash firmware
     dd if="${DOWNLOAD_DIR}/openwrt.img" of="${ROOT_DEV}" bs=4M conv=fsync 2>&1
     
     if [ $? -eq 0 ]; then
@@ -83,14 +132,65 @@ do_update() {
     fi
 }
 
+keep_settings() {
+    echo "=== 保留配置更新 ==="
+    
+    backup_overlay
+    
+    download_firmware
+    if [ $? -ne 0 ]; then return 1; fi
+    
+    ROOT_DEV=$(mount | grep ' / ' | awk '{print $1}' | sed 's/[0-9]*$//')
+    
+    if [ -z "$ROOT_DEV" ]; then
+        echo "错误: 无法确定根设备"
+        return 1
+    fi
+    
+    echo "当前根设备: ${ROOT_DEV}"
+    echo "正在刷入固件（保留配置），请勿断电..."
+    
+    dd if="${DOWNLOAD_DIR}/openwrt.img" of="${ROOT_DEV}" bs=4M conv=fsync 2>&1
+    
+    if [ $? -eq 0 ]; then
+        echo "刷入完成！"
+        echo "正在设置配置恢复..."
+        
+        # Create a first-boot script to restore overlay
+        mkdir -p /overlay/etc/uci-defaults
+        cat > /overlay/etc/uci-defaults/99-restore-overlay <<'EOF'
+#!/bin/sh
+if [ -f /tmp/overlay_backup/overlay_backup.tar.gz ]; then
+    tar -xzf /tmp/overlay_backup/overlay_backup.tar.gz -C / 2>/dev/null
+    rm -rf /tmp/overlay_backup
+    reboot
+fi
+EOF
+        chmod +x /overlay/etc/uci-defaults/99-restore-overlay
+        
+        echo "系统将在 10 秒后重启..."
+        sleep 10
+        reboot
+    else
+        echo "错误: 刷入失败"
+        return 1
+    fi
+}
+
 case "$1" in
     check)
         check_update
         ;;
-    update)
-        do_update
+    fresh)
+        fresh_install
+        ;;
+    keep)
+        keep_settings
         ;;
     *)
-        echo "用法: $0 {check|update}"
+        echo "用法: $0 {check|fresh|keep}"
+        echo "  check  - 检查更新"
+        echo "  fresh  - 全新安装（不保留配置）"
+        echo "  keep   - 保留配置更新"
         ;;
 esac

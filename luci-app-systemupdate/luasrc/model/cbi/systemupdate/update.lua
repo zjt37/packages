@@ -7,16 +7,15 @@ s = m:section(TypedSection, "systemupdate")
 s.anonymous = true
 s.addremove = false
 
+o = s:option(ListValue, "install_mode", translate("安装模式"))
+o:value("fresh", translate("全新安装（不保留配置）"))
+o:value("keep", translate("保留配置更新"))
+o.default = "fresh"
+
 o = s:option(Button, "_check", translate("检查更新"))
 o.inputstyle = "apply"
-o.onclick = function(self, section)
-	luci.http.redirect(luci.dispatcher.build_url("admin/system/systemupdate") .. "?action=check")
-end
 
 o = s:option(Button, "_update", translate("开始更新"))
 o.inputstyle = "reset"
-o.onclick = function(self, section)
-	luci.http.redirect(luci.dispatcher.build_url("admin/system/systemupdate") .. "?action=update")
-end
 
 return m

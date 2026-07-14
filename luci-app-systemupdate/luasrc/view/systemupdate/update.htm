@@ -8,6 +8,16 @@
 		<p><%:从 GitHub 下载最新固件并自动刷入%></p>
 		<p><strong style="color: red;"><%:警告：更新过程中请勿断电！%></strong></p>
 		<br/>
+		<div class="cbi-value">
+			<label class="cbi-value-title"><%:安装模式%></label>
+			<div class="cbi-value-field">
+				<select id="install-mode">
+					<option value="fresh"><%:全新安装（不保留配置）%></option>
+					<option value="keep"><%:保留配置更新%></option>
+				</select>
+			</div>
+		</div>
+		<br/>
 		<input type="button" class="cbi-button cbi-button-apply" value="<%:检查更新%>" onclick="checkUpdate()" />
 		<input type="button" class="cbi-button cbi-button-reset" value="<%:开始更新%>" onclick="startUpdate()" />
 		<br/><br/>
@@ -27,10 +37,14 @@ function checkUpdate() {
 }
 
 function startUpdate() {
-	if (!confirm('<%:确定要开始更新吗？更新过程中请勿断电！%>')) return;
+	var mode = document.getElementById('install-mode').value;
+	var modeText = mode === 'keep' ? '<%:保留配置%>' : '<%:全新安装%>';
+	
+	if (!confirm('<%:确定要开始更新吗？%>\n<%:安装模式%>: ' + modeText + '\n<%:更新过程中请勿断电！%>')) return;
+	
 	document.getElementById('update-log').style.display = 'block';
 	document.getElementById('log-content').value = '<%:正在下载固件...%>\n';
-	XHR.get('<%=luci.dispatcher.build_url("admin/system/systemupdate")%>', {action: 'update'}, function(x, data) {
+	XHR.get('<%=luci.dispatcher.build_url("admin/system/systemupdate")%>', {action: 'update', mode: mode}, function(x, data) {
 		document.getElementById('log-content').value += data || '<%:更新完成%>';
 	});
 }
