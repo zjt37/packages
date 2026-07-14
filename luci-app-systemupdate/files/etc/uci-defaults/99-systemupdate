@@ -1,7 +1,11 @@
 #!/bin/sh
 
-uci -q set systemupdate.systemupdate.enabled='1'
-uci -q set systemupdate.systemupdate.repo='zjt37/zheng'
-uci commit systemupdate
+uci -q batch <<EOF
+set systemupdate.systemupdate=systemupdate
+set systemupdate.systemupdate.enabled='1'
+set systemupdate.systemupdate.install_mode='fresh'
+set systemupdate.systemupdate.repo='zjt37/zheng'
+commit systemupdate
+EOF
 
 exit 0
