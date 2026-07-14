@@ -1,3 +1,20 @@
+<%
+local action = luci.http.formvalue("action")
+if action then
+    luci.http.prepare_content("text/plain")
+    if action == "check" then
+        luci.http.write(luci.sys.exec("/usr/bin/systemupdate check"))
+    elseif action == "update" then
+        local mode = luci.http.formvalue("mode") or "fresh"
+        if mode == "keep" then
+            luci.http.write(luci.sys.exec("/usr/bin/systemupdate keep"))
+        else
+            luci.http.write(luci.sys.exec("/usr/bin/systemupdate fresh"))
+        end
+    end
+    return
+end
+%>
 <%+header%>
 
 <h2><%:系统更新%></h2>
@@ -28,25 +45,35 @@
 </fieldset>
 
 <script type="text/javascript">
+var actionUrl = '<%=luci.dispatcher.build_url("admin/system/systemupdate")%>';
+
 function checkUpdate() {
-	document.getElementById('update-log').style.display = 'block';
-	document.getElementById('log-content').value = '<%:正在检查更新...%>\n';
-	XHR.get('<%=luci.dispatcher.build_url("admin/system/systemupdate/action")%>', {action: 'check'}, function(x, data) {
-		document.getElementById('log-content').value += data || '<%:检查完成%>';
-	});
+	var log = document.getElementById('update-log');
+	var content = document.getElementById('log-content');
+	log.style.display = 'block';
+	content.value = '<%:正在检查更新...%>\n';
+
+	fetch(actionUrl + '?action=check')
+		.then(function(r) { return r.text(); })
+		.then(function(data) { content.value += data || '<%:无返回数据%>'; })
+		.catch(function(e) { content.value += 'Error: ' + e; });
 }
 
 function startUpdate() {
 	var mode = document.getElementById('install-mode').value;
 	var modeText = mode === 'keep' ? '<%:保留配置%>' : '<%:全新安装%>';
-	
+
 	if (!confirm('<%:确定要开始更新吗？%>\n<%:安装模式%>: ' + modeText + '\n<%:更新过程中请勿断电！%>')) return;
-	
-	document.getElementById('update-log').style.display = 'block';
-	document.getElementById('log-content').value = '<%:正在下载固件...%>\n';
-	XHR.get('<%=luci.dispatcher.build_url("admin/system/systemupdate/action")%>', {action: 'update', mode: mode}, function(x, data) {
-		document.getElementById('log-content').value += data || '<%:更新完成%>';
-	});
+
+	var log = document.getElementById('update-log');
+	var content = document.getElementById('log-content');
+	log.style.display = 'block';
+	content.value = '<%:正在下载固件...%>\n';
+
+	fetch(actionUrl + '?action=update&mode=' + mode)
+		.then(function(r) { return r.text(); })
+		.then(function(data) { content.value += data || '<%:无返回数据%>'; })
+		.catch(function(e) { content.value += 'Error: ' + e; });
 }
 </script>
 
