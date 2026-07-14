@@ -2,12 +2,8 @@
 	"admin/system/systemupdate": {
 		"title": "系统更新",
 		"action": {
-			"type": "cbi",
-			"cbi-map": "systemupdate/update",
-			"tail": {
-				"type": "template",
-				"template": "systemupdate/update"
-			}
+			"type": "template",
+			"template": "systemupdate/update"
 		},
 		"depends": {
 			"acl": ["luci-app-systemupdate"],

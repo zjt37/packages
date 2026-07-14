@@ -31,7 +31,7 @@
 function checkUpdate() {
 	document.getElementById('update-log').style.display = 'block';
 	document.getElementById('log-content').value = '<%:正在检查更新...%>\n';
-	XHR.get('<%=luci.dispatcher.build_url("admin/system/systemupdate")%>', {action: 'check'}, function(x, data) {
+	XHR.get('<%=luci.dispatcher.build_url("admin/system/systemupdate/action")%>', {action: 'check'}, function(x, data) {
 		document.getElementById('log-content').value += data || '<%:检查完成%>';
 	});
 }
@@ -44,7 +44,7 @@ function startUpdate() {
 	
 	document.getElementById('update-log').style.display = 'block';
 	document.getElementById('log-content').value = '<%:正在下载固件...%>\n';
-	XHR.get('<%=luci.dispatcher.build_url("admin/system/systemupdate")%>', {action: 'update', mode: mode}, function(x, data) {
+	XHR.get('<%=luci.dispatcher.build_url("admin/system/systemupdate/action")%>', {action: 'update', mode: mode}, function(x, data) {
 		document.getElementById('log-content').value += data || '<%:更新完成%>';
 	});
 }
