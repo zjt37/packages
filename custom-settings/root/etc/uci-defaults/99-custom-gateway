@@ -6,6 +6,7 @@ uci batch <<-EOF
 	delete network.globals.ula_prefix
 	commit network
 	set dhcp.@dnsmasq[0].server='223.5.5.5'
+	set dhcp.lan.ignore=1
 	set dhcp.@dnsmasq[0].filter_aaaa=1
 	set dhcp.@dnsmasq[0].filter_a=1
 	set dhcp.lan.dhcpv6='disabled'
