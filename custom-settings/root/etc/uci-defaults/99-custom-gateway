@@ -6,6 +6,8 @@ uci batch <<-EOF
 	set network.wan6.proto='none'
 	delete network.globals.ula_prefix
 	commit network
+	set dhcp.@dnsmasq[0].server='223.5.5.5'
+	commit dhcp
 	set firewall.@zone[1].ipv6='0'
 	commit firewall
 	sysctl -w net.ipv6.conf.all.disable_ipv6=1
