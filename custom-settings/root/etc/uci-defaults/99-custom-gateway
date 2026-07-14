@@ -2,6 +2,13 @@
 uci batch <<-EOF
 	set network.lan.gateway='192.168.2.2'
 	set network.lan.dns='223.5.5.5'
+	set network.wan.proto='none'
+	set network.wan6.proto='none'
+	delete network.globals.ula_prefix
 	commit network
+	set firewall.@zone[1].ipv6='0'
+	commit firewall
+	sysctl -w net.ipv6.conf.all.disable_ipv6=1
+	sysctl -w net.ipv6.conf.default.disable_ipv6=1
 EOF
 exit 0
