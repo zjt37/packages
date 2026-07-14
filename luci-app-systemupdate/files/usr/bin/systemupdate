@@ -1,0 +1,96 @@
+#!/bin/sh
+
+REPO="zjt37/zheng"
+API_URL="https://api.github.com/repos/${REPO}/releases/latest"
+DOWNLOAD_DIR="/tmp/firmware"
+
+check_update() {
+    echo "=== 检查更新 ==="
+    echo "仓库: ${REPO}"
+    echo ""
+    
+    RELEASE_JSON=$(curl -s "${API_URL}")
+    
+    if [ -z "$RELEASE_JSON" ]; then
+        echo "错误: 无法获取更新信息"
+        return 1
+    fi
+    
+    TAG_NAME=$(echo "$RELEASE_JSON" | jq -r '.tag_name')
+    ASSET_URL=$(echo "$RELEASE_JSON" | jq -r '.assets[] | select(.name == "openwrt.img") | .browser_download_url')
+    FILE_SIZE=$(echo "$RELEASE_JSON" | jq -r '.assets[] | select(.name == "openwrt.img") | .size')
+    
+    if [ -z "$ASSET_URL" ] || [ "$ASSET_URL" = "null" ]; then
+        echo "错误: 未找到固件文件"
+        return 1
+    fi
+    
+    FILE_SIZE_MB=$((FILE_SIZE / 1024 / 1024))
+    
+    echo "最新版本: ${TAG_NAME}"
+    echo "固件大小: ${FILE_SIZE_MB} MB"
+    echo "下载地址: ${ASSET_URL}"
+    echo ""
+    echo "固件信息获取成功，可以开始更新"
+}
+
+do_update() {
+    echo "=== 开始更新 ==="
+    
+    mkdir -p "${DOWNLOAD_DIR}"
+    
+    echo "正在下载固件..."
+    curl -L -o "${DOWNLOAD_DIR}/openwrt.img" "${ASSET_URL}"
+    
+    if [ $? -ne 0 ]; then
+        echo "错误: 下载失败"
+        return 1
+    fi
+    
+    echo "下载完成，校验文件..."
+    DOWNLOADED_SIZE=$(stat -c%s "${DOWNLOAD_DIR}/openwrt.img" 2>/dev/null || stat -f%z "${DOWNLOAD_DIR}/openwrt.img" 2>/dev/null)
+    
+    if [ "$DOWNLOADED_SIZE" -ne "$FILE_SIZE" ]; then
+        echo "错误: 文件大小不匹配 (期望: ${FILE_SIZE}, 实际: ${DOWNLOADED_SIZE})"
+        return 1
+    fi
+    
+    echo "文件校验通过"
+    echo "正在准备刷入..."
+    
+    # Get current root device
+    ROOT_DEV=$(mount | grep ' / ' | awk '{print $1}' | sed 's/[0-9]*$//')
+    
+    if [ -z "$ROOT_DEV" ]; then
+        echo "错误: 无法确定根设备"
+        return 1
+    fi
+    
+    echo "当前根设备: ${ROOT_DEV}"
+    echo "正在刷入固件，请勿断电..."
+    
+    # Flash firmware
+    dd if="${DOWNLOAD_DIR}/openwrt.img" of="${ROOT_DEV}" bs=4M conv=fsync 2>&1
+    
+    if [ $? -eq 0 ]; then
+        echo "刷入完成！"
+        echo "系统将在 10 秒后重启..."
+        sleep 10
+        reboot
+    else
+        echo "错误: 刷入失败"
+        return 1
+    fi
+}
+
+case "$1" in
+    check)
+        check_update
+        ;;
+    update)
+        do_update
+        ;;
+    *)
+        echo "用法: $0 {check|update}"
+        ;;
+esac

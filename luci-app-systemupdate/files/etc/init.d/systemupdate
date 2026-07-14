@@ -1,0 +1,14 @@
+#!/bin/sh /etc/rc.common
+
+START=99
+STOP=10
+
+USE_PROCD=1
+
+start_service() {
+    echo "System update service started"
+}
+
+stop_service() {
+    echo "System update service stopped"
+}

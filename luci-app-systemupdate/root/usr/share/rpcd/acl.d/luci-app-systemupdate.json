@@ -1,0 +1,16 @@
+{
+	"luci-app-systemupdate": {
+		"read": {
+			"uci-systemupdate": ["systemupdate"],
+			"file": {
+				"/usr/bin/systemupdate": ["exec"]
+			}
+		},
+		"write": {
+			"uci-systemupdate": ["systemupdate"],
+			"file": {
+				"/usr/bin/systemupdate": ["exec"]
+			}
+		}
+	}
+}

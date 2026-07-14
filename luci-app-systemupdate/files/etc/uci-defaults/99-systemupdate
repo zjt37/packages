@@ -1,0 +1,7 @@
+#!/bin/sh
+
+uci -q set systemupdate.systemupdate.enabled='1'
+uci -q set systemupdate.systemupdate.repo='zjt37/zheng'
+uci commit systemupdate
+
+exit 0

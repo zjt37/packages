@@ -1,0 +1,39 @@
+<%+header%>
+
+<h2><%:系统更新%></h2>
+
+<fieldset class="cbi-section">
+	<legend><%:在线更新%></legend>
+	<div style="padding: 10px;">
+		<p><%:从 GitHub 下载最新固件并自动刷入%></p>
+		<p><strong style="color: red;"><%:警告：更新过程中请勿断电！%></strong></p>
+		<br/>
+		<input type="button" class="cbi-button cbi-button-apply" value="<%:检查更新%>" onclick="checkUpdate()" />
+		<input type="button" class="cbi-button cbi-button-reset" value="<%:开始更新%>" onclick="startUpdate()" />
+		<br/><br/>
+		<div id="update-log" style="display:none;">
+			<textarea id="log-content" rows="20" cols="80" readonly style="width:100%;font-family:monospace;font-size:12px;background:#1a1a1a;color:#0f0;"></textarea>
+		</div>
+	</div>
+</fieldset>
+
+<script type="text/javascript">
+function checkUpdate() {
+	document.getElementById('update-log').style.display = 'block';
+	document.getElementById('log-content').value = '<%:正在检查更新...%>\n';
+	XHR.get('<%=luci.dispatcher.build_url("admin/system/systemupdate")%>', {action: 'check'}, function(x, data) {
+		document.getElementById('log-content').value += data || '<%:检查完成%>';
+	});
+}
+
+function startUpdate() {
+	if (!confirm('<%:确定要开始更新吗？更新过程中请勿断电！%>')) return;
+	document.getElementById('update-log').style.display = 'block';
+	document.getElementById('log-content').value = '<%:正在下载固件...%>\n';
+	XHR.get('<%=luci.dispatcher.build_url("admin/system/systemupdate")%>', {action: 'update'}, function(x, data) {
+		document.getElementById('log-content').value += data || '<%:更新完成%>';
+	});
+}
+</script>
+
+<%+footer%>
