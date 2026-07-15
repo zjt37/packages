@@ -46,7 +46,22 @@ download_firmware() {
     mkdir -p "${DOWNLOAD_DIR}"
     
     echo "正在下载固件..."
-    curl -L --progress-bar -o "${DOWNLOAD_DIR}/openwrt.img" "${ASSET_URL}"
+    curl -s -L -o "${DOWNLOAD_DIR}/openwrt.img" "${ASSET_URL}" &
+    CURL_PID=$!
+    
+    while kill -0 $CURL_PID 2>/dev/null; do
+        if [ -f "${DOWNLOAD_DIR}/openwrt.img" ]; then
+            CURRENT=$(stat -c%s "${DOWNLOAD_DIR}/openwrt.img" 2>/dev/null || echo 0)
+            if [ "$FILE_SIZE" -gt 0 ] 2>/dev/null; then
+                PERCENT=$((CURRENT * 100 / FILE_SIZE))
+                CURRENT_MB=$((CURRENT / 1024 / 1024))
+                TOTAL_MB=$((FILE_SIZE / 1024 / 1024))
+                echo "下载进度: ${PERCENT}% (${CURRENT_MB}/${TOTAL_MB} MB)"
+            fi
+        fi
+        sleep 5
+    done
+    wait $CURL_PID
     
     if [ $? -ne 0 ]; then
         echo "错误: 下载失败"
