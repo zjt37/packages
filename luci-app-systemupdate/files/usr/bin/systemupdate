@@ -68,7 +68,7 @@ download_firmware() {
     CURL_PID=$!
     
     while kill -0 $CURL_PID 2>/dev/null; do
-        sleep 5
+        sleep 3
         if [ -f "${DOWNLOAD_DIR}/openwrt.img" ]; then
             CURRENT=$(ls -l "${DOWNLOAD_DIR}/openwrt.img" 2>/dev/null | awk '{print $5}')
             CURRENT=${CURRENT:-0}
@@ -76,11 +76,12 @@ download_firmware() {
                 PERCENT=$((CURRENT * 100 / FILE_SIZE))
                 CURRENT_MB=$((CURRENT / 1024 / 1024))
                 TOTAL_MB=$((FILE_SIZE / 1024 / 1024))
-                echo "下载进度: ${PERCENT}% (${CURRENT_MB}/${TOTAL_MB} MB)"
+                printf "\r下载进度: %d%% (%d/%d MB)" "$PERCENT" "$CURRENT_MB" "$TOTAL_MB" > /tmp/systemupdate_progress
             fi
         fi
     done
     wait $CURL_PID
+    echo "" > /tmp/systemupdate_progress
     
     if [ $? -ne 0 ]; then
         echo "错误: 下载失败"

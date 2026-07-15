@@ -9,12 +9,21 @@ if action then
         luci.sys.exec("/usr/bin/systemupdate " .. mode .. " > /tmp/systemupdate.log 2>&1 &")
         luci.http.write("更新已启动，请查看下方日志\n")
     elseif action == "log" then
+        local progress = ""
+        local pf = io.open("/tmp/systemupdate_progress", "r")
+        if pf then
+            progress = pf:read("*a") or ""
+            pf:close()
+        end
+        local log = ""
         local f = io.open("/tmp/systemupdate.log", "r")
         if f then
-            luci.http.write(f:read("*a"))
+            log = f:read("*a") or ""
             f:close()
-        else
-            luci.http.write("暂无日志\n")
+        end
+        luci.http.write(log)
+        if #progress > 0 then
+            luci.http.write(progress)
         end
     end
     return
