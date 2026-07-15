@@ -5,11 +5,7 @@ API_URL="https://api.github.com/repos/${REPO}/releases/latest"
 DOWNLOAD_DIR="/tmp/firmware"
 OVERLAY_BACKUP="/tmp/overlay_backup"
 
-check_update() {
-    echo "=== 检查更新 ==="
-    echo "仓库: ${REPO}"
-    echo ""
-    
+get_release_info() {
     RELEASE_JSON=$(curl -s "${API_URL}")
     
     if [ -z "$RELEASE_JSON" ]; then
@@ -25,6 +21,17 @@ check_update() {
         echo "错误: 未找到固件文件"
         return 1
     fi
+    
+    return 0
+}
+
+check_update() {
+    echo "=== 检查更新 ==="
+    echo "仓库: ${REPO}"
+    echo ""
+    
+    get_release_info
+    if [ $? -ne 0 ]; then return 1; fi
     
     FILE_SIZE_MB=$((FILE_SIZE / 1024 / 1024))
     
@@ -106,6 +113,9 @@ restore_overlay() {
 fresh_install() {
     echo "=== 全新安装 ==="
     
+    get_release_info
+    if [ $? -ne 0 ]; then return 1; fi
+    
     download_firmware
     if [ $? -ne 0 ]; then return 1; fi
     
@@ -136,6 +146,9 @@ keep_settings() {
     echo "=== 保留配置更新 ==="
     
     backup_overlay
+    
+    get_release_info
+    if [ $? -ne 0 ]; then return 1; fi
     
     download_firmware
     if [ $? -ne 0 ]; then return 1; fi
