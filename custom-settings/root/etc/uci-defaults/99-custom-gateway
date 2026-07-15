@@ -6,6 +6,8 @@ uci batch <<-EOF
 	set dhcp.@dnsmasq[0].server='223.5.5.5'
 	set dhcp.lan.ignore=1
 	set dhcp.lan.dhcpv6='disabled'
+	set dhcp.lan.ra='disabled'
+	set dhcp.lan.ra_slaac='0'
 	commit dhcp
 EOF
 exit 0
