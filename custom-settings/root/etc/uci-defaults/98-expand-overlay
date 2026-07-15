@@ -5,11 +5,14 @@
 DISK="/dev/sda"
 [ -b "$DISK" ] || exit 0
 
-ROOT_UUID=$(blkid -s UUID -o value -L rootfs_data 2>/dev/null)
-LOOP_UUID=$(blkid /dev/loop0 -s UUID -o value 2>/dev/null)
+ROOT_DEV=$(blkid -L rootfs_data 2>/dev/null)
 
-[ -z "$LOOP_UUID" ] && exit 0
-[ "$ROOT_UUID" = "$LOOP_UUID" ] || exit 0
+case "$ROOT_DEV" in
+    /dev/loop*) ;;
+    /dev/sd*) exit 0 ;;
+    /dev/vd*) exit 0 ;;
+    *) exit 0 ;;
+esac
 
 LAST_PART_NUM=$(parted "$DISK" print 2>/dev/null | awk '/^[0-9]/{n=$1} END{print n}')
 DISK_SIZE=$(parted "$DISK" unit s print 2>/dev/null | grep "^Disk ${DISK}:" | awk '{print $3}' | tr -d 's')
