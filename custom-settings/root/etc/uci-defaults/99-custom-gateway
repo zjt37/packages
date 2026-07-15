@@ -2,20 +2,10 @@
 uci batch <<-EOF
 	set network.lan.gateway='192.168.2.2'
 	set network.lan.dns='223.5.5.5'
-	set network.lan.ip6assign='60'
-	delete network.globals.ula_prefix
 	commit network
 	set dhcp.@dnsmasq[0].server='223.5.5.5'
 	set dhcp.lan.ignore=1
 	set dhcp.lan.dhcpv6='disabled'
-	set dhcp.lan.ra='disabled'
-	set dhcp.lan.ra_slaac='0'
-	delete dhcp.lan.ra_flags
-	delete dhcp.wan
 	commit dhcp
-	set firewall.@zone[1].ipv6=0
-	commit firewall
 EOF
-/etc/init.d/odhcpd stop
-/etc/init.d/odhcpd disable
 exit 0
