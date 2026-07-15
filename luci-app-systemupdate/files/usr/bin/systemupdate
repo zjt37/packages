@@ -25,6 +25,23 @@ get_release_info() {
     return 0
 }
 
+get_root_dev() {
+    MOUNT_SRC=$(mount | grep ' / ' | awk '{print $1}')
+    
+    if echo "$MOUNT_SRC" | grep -q "overlayfs"; then
+        ROOT_UUID=$(cat /proc/cmdline | tr ' ' '\n' | grep '^root=' | cut -d= -f2- | sed 's/PARTUUID=//;s/-[0-9]*$//')
+        for dev in /dev/sd? /dev/vd? /dev/nvme?n?; do
+            if [ -b "$dev" ] && blkid "$dev" 2>/dev/null | grep -qi "$ROOT_UUID"; then
+                echo "$dev"
+                return 0
+            fi
+        done
+        echo "/dev/sda"
+    else
+        echo "$MOUNT_SRC" | sed 's/[0-9]*$//'
+    fi
+}
+
 check_update() {
     echo "=== 检查更新 ==="
     echo "仓库: ${REPO}"
@@ -102,29 +119,6 @@ backup_overlay() {
     fi
 }
 
-restore_overlay() {
-    echo "=== 恢复配置 ==="
-    
-    if [ ! -f "${OVERLAY_BACKUP}/overlay_backup.tar.gz" ]; then
-        echo "警告: 未找到备份文件，跳过恢复"
-        return 0
-    fi
-    
-    echo "正在等待系统启动..."
-    sleep 30
-    
-    echo "正在恢复配置..."
-    tar -xzf "${OVERLAY_BACKUP}/overlay_backup.tar.gz" -C / 2>/dev/null
-    
-    if [ $? -eq 0 ]; then
-        echo "配置恢复完成"
-    else
-        echo "警告: 部分配置恢复失败"
-    fi
-    
-    return 0
-}
-
 fresh_install() {
     echo "=== 全新安装 ==="
     
@@ -134,9 +128,9 @@ fresh_install() {
     download_firmware
     if [ $? -ne 0 ]; then return 1; fi
     
-    ROOT_DEV=$(mount | grep ' / ' | awk '{print $1}' | sed 's/[0-9]*$//')
+    ROOT_DEV=$(get_root_dev)
     
-    if [ -z "$ROOT_DEV" ]; then
+    if [ -z "$ROOT_DEV" ] || [ ! -b "$ROOT_DEV" ]; then
         echo "错误: 无法确定根设备"
         return 1
     fi
@@ -168,9 +162,9 @@ keep_settings() {
     download_firmware
     if [ $? -ne 0 ]; then return 1; fi
     
-    ROOT_DEV=$(mount | grep ' / ' | awk '{print $1}' | sed 's/[0-9]*$//')
+    ROOT_DEV=$(get_root_dev)
     
-    if [ -z "$ROOT_DEV" ]; then
+    if [ -z "$ROOT_DEV" ] || [ ! -b "$ROOT_DEV" ]; then
         echo "错误: 无法确定根设备"
         return 1
     fi
@@ -184,7 +178,6 @@ keep_settings() {
         echo "刷入完成！"
         echo "正在设置配置恢复..."
         
-        # Create a first-boot script to restore overlay
         mkdir -p /overlay/etc/uci-defaults
         cat > /overlay/etc/uci-defaults/99-restore-overlay <<'EOF'
 #!/bin/sh
