@@ -1,0 +1,50 @@
+#!/bin/sh
+
+[ -f /etc/config ] || exit 0
+
+DISK="/dev/sda"
+[ -b "$DISK" ] || exit 0
+
+ROOT_UUID=$(blkid -s UUID -o value -L rootfs_data 2>/dev/null)
+LOOP_UUID=$(blkid /dev/loop0 -s UUID -o value 2>/dev/null)
+
+[ -z "$LOOP_UUID" ] && exit 0
+[ "$ROOT_UUID" = "$LOOP_UUID" ] || exit 0
+
+LAST_PART_NUM=$(parted "$DISK" print 2>/dev/null | awk '/^[0-9]/{n=$1} END{print n}')
+DISK_SIZE=$(parted "$DISK" unit s print 2>/dev/null | grep "^Disk ${DISK}:" | awk '{print $3}' | tr -d 's')
+LAST_PART_END=$(parted "$DISK" unit s print 2>/dev/null | awk '/^[0-9]/{end=$3} END{print end}' | tr -d 's')
+
+[ -z "$DISK_SIZE" ] || [ -z "$LAST_PART_END" ] && exit 0
+
+FREE_SECTORS=$((DISK_SIZE - LAST_PART_END))
+[ "$FREE_SECTORS" -lt 2048 ] && exit 0
+
+NEW_PART_NUM=$((LAST_PART_NUM + 1))
+NEW_START=$(((LAST_PART_END / 2048 + 1) * 2048))
+
+parted -s "$DISK" mkpart primary ext4 "${NEW_START}s" 100%
+
+sleep 2
+NEW_PART="${DISK}${NEW_PART_NUM}"
+[ -b "$NEW_PART" ] || exit 0
+
+mkfs.ext4 -q -L rootfs_data "$NEW_PART"
+
+mkdir -p /tmp/overlay_expand
+mount "$NEW_PART" /tmp/overlay_expand
+
+cp -a /overlay/* /tmp/overlay_expand/
+sync
+
+NEW_UUID=$(blkid -s UUID -o value "$NEW_PART")
+
+uci set fstab.@mount[0].uuid="$NEW_UUID"
+uci set fstab.@mount[0].target="/overlay"
+uci set fstab.@mount[0].enabled="1"
+uci commit fstab
+
+umount /tmp/overlay_expand
+rmdir /tmp/overlay_expand
+
+reboot
