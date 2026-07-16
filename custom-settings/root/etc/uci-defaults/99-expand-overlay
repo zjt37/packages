@@ -1,6 +1,6 @@
 #!/bin/sh
 
-[ -f /etc/config ] || exit 0
+[ -d /etc/config ] || exit 0
 
 DISK="/dev/sda"
 [ -b "$DISK" ] || exit 0
@@ -14,9 +14,9 @@ case "$ROOT_DEV" in
     *) exit 0 ;;
 esac
 
-LAST_PART_NUM=$(parted "$DISK" print 2>/dev/null | awk '/^[0-9]/{n=$1} END{print n}')
+LAST_PART_NUM=$(parted "$DISK" print 2>/dev/null | awk '/^[[:space:]]*[0-9]/{n=$1} END{print n}')
 DISK_SIZE=$(parted "$DISK" unit s print 2>/dev/null | grep "^Disk ${DISK}:" | awk '{print $3}' | tr -d 's')
-LAST_PART_END=$(parted "$DISK" unit s print 2>/dev/null | awk '/^[0-9]/{end=$3} END{print end}' | tr -d 's')
+LAST_PART_END=$(parted "$DISK" unit s print 2>/dev/null | awk '/^[[:space:]]*[0-9]/{end=$3} END{print end}' | tr -d 's')
 
 [ -z "$DISK_SIZE" ] || [ -z "$LAST_PART_END" ] && exit 0
 
@@ -46,8 +46,10 @@ uci set fstab.@mount[0].uuid="$NEW_UUID"
 uci set fstab.@mount[0].target="/overlay"
 uci set fstab.@mount[0].enabled="1"
 uci commit fstab
+sync
 
 umount /tmp/overlay_expand
 rmdir /tmp/overlay_expand
+sync
 
 reboot
