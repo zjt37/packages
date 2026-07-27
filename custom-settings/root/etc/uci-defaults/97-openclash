@@ -32,7 +32,7 @@ uci batch <<-EOF
 	set openclash.config.yacd_type='Meta'
 	set openclash.config.default_dashboard='metacubexd'
 	set openclash.config.dashboard_password='KaVU3DbN'
-	set openclash.config.core_version='linux-amd64-v1'
+	set openclash.config.core_version='linux-amd64-v2'
 	set openclash.config.smart_enable='1'
 	set openclash.config.auto_smart_switch='1'
 	set openclash.config.smart_prefer_asn='1'
