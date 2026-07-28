@@ -75,4 +75,6 @@ umount /tmp/overlay_expand
 rmdir /tmp/overlay_expand
 sync
 
+reboot
+
 exit 0
