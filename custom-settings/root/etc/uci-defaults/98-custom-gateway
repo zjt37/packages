@@ -68,11 +68,6 @@ umount /tmp/overlay_expand
 rmdir /tmp/overlay_expand
 sync
 
-# === 3. 替换配置文件 ===
-SRC_DIR="/etc/uci-defaults"
-DEST_DIR="/etc/config"
 
-[ -f "${SRC_DIR}/openclash" ] && cp -f "${SRC_DIR}/openclash" "${DEST_DIR}/openclash"
-[ -f "${SRC_DIR}/mosdns" ] && cp -f "${SRC_DIR}/mosdns" "${DEST_DIR}/mosdns"
 
 exit 0
