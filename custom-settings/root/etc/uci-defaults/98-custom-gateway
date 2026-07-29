@@ -12,6 +12,7 @@ uci batch <<-EOF
 	set dhcp.lan.ra='disabled'
 	set dhcp.lan.ra_slaac='0'
 	set dhcp.@dnsmasq[0].noresolv='1'
+	set dhcp.@dnsmasq[0].port='5353'
 	commit dhcp
 EOF
 
