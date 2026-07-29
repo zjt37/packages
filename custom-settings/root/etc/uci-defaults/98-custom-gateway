@@ -5,7 +5,7 @@
 # === 1. 设置网关和DNS ===
 uci batch <<-EOF
 	set network.lan.gateway='192.168.2.2'
-	set network.lan.dns='223.5.5.5'
+	set network.lan.dns='127.0.0.1'
 	commit network
 	set dhcp.lan.ignore=1
 	set dhcp.lan.dhcpv6='disabled'
