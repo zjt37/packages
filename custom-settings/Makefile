@@ -23,7 +23,6 @@ endef
 
 define Package/custom-settings/install
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
-	$(INSTALL_CONF) ./root/etc/uci-defaults/openclash $(1)/etc/uci-defaults/
 	$(INSTALL_BIN) ./root/etc/uci-defaults/98-custom-gateway $(1)/etc/uci-defaults/
 endef
 
