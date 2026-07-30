@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# 第一次开机综合脚本：设置网关、扩展overlay、替换配置文件
+# 第一次开机综合脚本：设置网关、扩展overlay
 
 # === 1. 设置网关和DNS ===
 uci batch <<-EOF
@@ -16,12 +16,8 @@ uci batch <<-EOF
 	commit dhcp
 EOF
 
-# === 2. 替换配置文件 ===
-SRC_DIR="/etc/uci-defaults"
-DEST_DIR="/etc/config"
 
-
-# === 3. 扩展overlay分区 ===
+# === 2. 扩展overlay分区 ===
 [ -d /etc/config ] || exit 0
 
 DISK="/dev/sda"
