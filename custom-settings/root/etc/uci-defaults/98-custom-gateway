@@ -20,7 +20,6 @@ EOF
 SRC_DIR="/etc/uci-defaults"
 DEST_DIR="/etc/config"
 
-[ -f "${SRC_DIR}/openclash" ] && cp -f "${SRC_DIR}/openclash" "${DEST_DIR}/openclash"
 
 # === 3. 扩展overlay分区 ===
 [ -d /etc/config ] || exit 0
