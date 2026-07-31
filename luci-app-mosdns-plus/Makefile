@@ -19,6 +19,9 @@ define Package/luci-app-mosdns-plus/description
   MosDNS LuCI configuration interface with integrated dashboard panel
 endef
 
+define Build/Compile
+endef
+
 define Package/luci-app-mosdns-plus/install
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) ./files/etc/init.d/mosdns $(1)/etc/init.d/mosdns
