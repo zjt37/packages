@@ -52,6 +52,42 @@ check_update() {
     
     FILE_SIZE_MB=$((FILE_SIZE / 1024 / 1024))
     
+    if [ -f /etc/openwrt_release ]; then
+        CURRENT_DATE=$(date -r /etc/openwrt_release +%Y-%m-%d 2>/dev/null)
+    fi
+    CURRENT_DATE=${CURRENT_DATE:-未知}
+    
+    NEW_DATE_RAW=$(echo "${TAG_NAME}" | cut -c9-16)
+    if echo "$NEW_DATE_RAW" | grep -qE '^[0-9]{8}$'; then
+        NEW_DATE=$(echo "$NEW_DATE_RAW" | cut -c1-4)-$(echo "$NEW_DATE_RAW" | cut -c5-6)-$(echo "$NEW_DATE_RAW" | cut -c7-8)
+        NEW_TIME=$(echo "${TAG_NAME}" | cut -c17-22)
+        NEW_TIME=$(echo "$NEW_TIME" | cut -c1-2):$(echo "$NEW_TIME" | cut -c3-4):$(echo "$NEW_TIME" | cut -c5-6)
+        
+        echo "当前固件: 构建于 ${CURRENT_DATE}"
+        echo "最新固件: 构建于 ${NEW_DATE} ${NEW_TIME}"
+        echo ""
+        
+        CUR=$(echo "$CURRENT_DATE" | tr -d '-')
+        if echo "$CUR" | grep -qE '^[0-9]{8}$'; then
+            if [ "$NEW_DATE_RAW" -gt "$CUR" ]; then
+                echo "结果: 检测到新版本，可以开始更新！"
+            elif [ "$NEW_DATE_RAW" -eq "$CUR" ]; then
+                echo "结果: 最新固件与当前固件同日构建，可能无实质更新"
+            else
+                echo "结果: 当前固件已是最新版本"
+            fi
+        else
+            if [ "$NEW_DATE_RAW" -gt "$(date +%Y%m%d)" ]; then
+                echo "结果: 检测到新版本，可以开始更新！"
+            else
+                echo "结果: 已是最新版本"
+            fi
+        fi
+    else
+        echo "当前固件: 构建于 ${CURRENT_DATE}"
+        echo "结果: 无法解析最新固件版本号，请手动核对"
+    fi
+    echo ""
     echo "最新版本: ${TAG_NAME}"
     echo "固件大小: ${FILE_SIZE_MB} MB"
     echo "下载地址: ${ASSET_URL}"
