@@ -203,6 +203,8 @@ o:value("geosite.dat", "v2ray-geosite")
 o:value("https://raw.githubusercontent.com/privacy-protection-tools/anti-AD/master/anti-ad-domains.txt", "anti-AD")
 o:value("https://raw.githubusercontent.com/Cats-Team/AdRules/main/mosdns_adrules.txt", "Cats-Team/AdRules")
 o:value("https://raw.githubusercontent.com/neodevpro/neodevhost/master/domain", "NEO DEV HOST")
+o:value("https://raw.githubusercontent.com/AdguardTeam/FiltersRegistry/master/filters/filter_15_DnsFilter/filter.txt", "AdGuard DNS Filter")
+o:value("https://easylist-downloads.adblockplus.org/easylist.txt", "EasyList")
 
 o = s:taboption("basic",  Button, "_reload", translate("Restart-Service"), translate("Restart the MosDNS process to take effect of new configuration"))
 o.write = function()
