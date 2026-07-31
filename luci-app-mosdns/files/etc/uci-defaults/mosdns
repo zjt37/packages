@@ -1,8 +1,0 @@
-#!/bin/sh
-
-uci set mosdns.config.cache_cn_size='8000'
-uci set mosdns.config.cache_nocn_size='8000'
-uci set mosdns.config.dump_file='1'
-uci commit mosdns
-
-exit 0
