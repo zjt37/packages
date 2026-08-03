@@ -181,9 +181,8 @@ fresh_install() {
     
     if [ $? -eq 0 ]; then
         echo "刷入完成！"
-        echo "系统将在 10 秒后重启..."
-        sleep 10
-        reboot
+        echo "系统即将重启..."
+        echo b > /proc/sysrq-trigger
     else
         echo "错误: 刷入失败"
         return 1
@@ -228,9 +227,8 @@ fi
 EOF
         chmod +x /overlay/etc/uci-defaults/99-restore-overlay
         
-        echo "系统将在 10 秒后重启..."
-        sleep 10
-        reboot
+        echo "系统即将重启..."
+        echo b > /proc/sysrq-trigger
     else
         echo "错误: 刷入失败"
         return 1
