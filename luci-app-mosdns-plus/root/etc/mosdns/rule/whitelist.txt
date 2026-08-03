@@ -9,3 +9,9 @@ domain:redhat.com
 keyword:douyin
 keyword:microsoft
 keyword:windows
+domain:argotunnel.com
+domain:cloudflare.com
+domain:cloudflare.net
+domain:cloudflareinsights.com
+keyword:argotunnel
+keyword:cloudflare
