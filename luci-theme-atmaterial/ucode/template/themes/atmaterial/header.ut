@@ -1,0 +1,138 @@
+{#
+	AtMaterial is a clean HTML5 theme for LuCI. It is based on luci-theme-bootstrap and MUI
+
+	luci-theme-atmaterial
+	Copyright 2015-2017 Lutty Yang <lutty@wcan.in>
+
+	Have a bug? Please create an issue here on GitHub!
+	https://github.com/LuttyYang/luci-theme-atmaterial/issues
+
+	luci-theme-bootstrap:
+	Copyright 2008 Steven Barth <steven@midlink.org>
+	Copyright 2008-2016 Jo-Philipp Wich <jow@openwrt.org>
+	Copyright 2012 David Menting <david@nut-bolt.nl>
+
+	MUI:
+	https://github.com/muicss/mui
+
+	Licensed to the public under the Apache License 2.0
+-#}
+
+{%
+	import { getuid, getspnam } from 'luci.core';
+
+	const boardinfo = ubus.call('system', 'board');
+
+	let ucichanges = 0;
+	try {
+		ucichanges = length(ubus.call('uci', 'changes')?.changes ?? {});
+	} catch (e) {
+		ucichanges = 0;
+	}
+
+	http.prepare_content('text/html; charset=UTF-8');
+-%}
+
+<!DOCTYPE html>
+<html lang="{{ dispatcher.lang }}">
+<head>
+	<meta charset="utf-8">
+	<title>{{ striptags(`${boardinfo.hostname ?? '?'}${node?.title ? ` - ${_(node.title)}` : ''} - LuCI`) }}</title>
+	<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"/>
+	<meta name="format-detection" content="telephone=no, email=no"/>
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="mobile-web-app-capable" content="yes">
+	<meta name="x5-fullscreen" content="true">
+	<meta name="full-screen" content="yes">
+	<meta name="x5-page-mode" content="app">
+	<meta name="browsermode" content="application">
+	<meta name="theme-color" content="#F47932">
+	<meta name="msapplication-tap-highlight" content="no">
+	<meta name="msapplication-TileColor" content="#F47932">
+
+	<meta name="application-name" content="{{ striptags(`${boardinfo.hostname ?? '?'} - LuCI`) }}">
+	<meta name="apple-mobile-web-app-title" content="{{ striptags(`${boardinfo.hostname ?? '?'} - LuCI`) }}">
+	<meta name="msapplication-TileImage" content="{{ media }}/logo.png"/>
+	<link rel="icon" href="{{ media }}/logo.png" sizes="144x144">
+	<link rel="apple-touch-icon-precomposed" href="{{ media }}/logo.png" sizes="144x144">
+	<link rel="shortcut icon" href="{{ media }}/favicon.ico">
+
+	<link rel="stylesheet" href="{{ media }}/cascade.css?v=26.180.75667~128a781-75">
+	{% if (node?.css): %}
+	<link rel="stylesheet" href="{{ resource }}/{{ node.css }}">
+	{% endif %}
+	{% if (css): %}
+	<style title="text/css">{{ css }}</style>
+	{% endif %}
+	<script src="{{ dispatcher.build_url('admin/translations', dispatcher.lang) }}"></script>
+	<script src="{{ resource }}/cbi.js?v=26.180.75667~128a781"></script>
+	<script>
+		(function () {
+			function init() {
+				var show = document.querySelector('.showSide');
+				function openMenu(ev) {
+					if (window.innerWidth > 1152 || !show) return;
+					ev.preventDefault();
+					ev.stopPropagation();
+					show.click();
+				}
+				var logo = document.getElementById('logo');
+				var brand = document.querySelector('.brand');
+				if (logo) logo.addEventListener('click', openMenu);
+				if (brand) brand.addEventListener('click', openMenu);
+			}
+			if (document.readyState !== 'loading') init();
+			else document.addEventListener('DOMContentLoaded', init);
+		})();
+	</script>
+</head>
+<body class="lang_{{ dispatcher.lang }} {{ entityencode(striptags(node?.title ?? ''), true) }} {{ ctx.authsession ? 'logged-in' : '' }} {{ length(ctx.path) ? `node-${join('-', ctx.path)}` : 'node-main-login' }}" data-page="{{ entityencode(join('-', ctx.path), true) }}">
+<header>
+	<div class="fill">
+		<div class="container">
+			<span class="showSide"></span>
+			<a class="brand" href="#">{{ striptags(`${boardinfo.hostname ?? '?'}`) }}</a>
+			<div class="pull-right">
+				{% if (ucichanges > 0): %}
+				<a class="uci_change_indicator label notice" href="{{ dispatcher.build_url(ctx.path[0] ?? 'admin', 'uci/changes') }}">{{ _('Unsaved Changes') }}: {{ ucichanges }}</a>
+				{% endif %}
+				<span id="indicators"></span>
+			</div>
+		</div>
+	</div>
+</header>
+<div class="main">
+	<div style="" class="loading"><span><div class="loading-img"></div>Loading...</span></div>
+	<div class="main-left" id="mainmenu" style="display:none"></div>
+	<div class="main-right">
+		<div class="darkMask"></div>
+		<div id="maincontent">
+			<div class="container">
+				{% if (getuid() == 0 && getspnam('root')?.pwdp === '' && ctx.authsession): %}
+					<div class="alert-message warning">
+						<h4>{{ _('No password set!') }}</h4>
+						<p>{{ _('There is no password set on this router. Please configure a root password to protect the web interface and enable SSH.') }}</p>
+						{% if (dispatcher.lookup("admin/system/admin")): %}
+						  <div class="right"><a class="btn" href="{{ dispatcher.build_url("admin/system/admin") }}">{{ _('Go to password configuration...') }}</a></div>
+						{% endif %}
+					</div>
+				{% endif %}
+
+				{% if (boardinfo?.rootfs_type == "initramfs"): %}
+					<div class="alert-message warning">
+						<h4>{{ _('System running in recovery (initramfs) mode.') }}</h4>
+						<p>{{ _('No changes to settings will be stored and are lost after rebooting. This mode should only be used to install a firmware upgrade') }}</p>
+						{% if (dispatcher.lookup("admin/system/flash")): %}
+						  <div class="right"><a class="btn" href="{{ dispatcher.build_url("admin/system/flash") }}">{{ _('Go to firmware upgrade...') }}</a></div>
+						{% endif %}
+					</div>
+				{% endif %}
+
+				<noscript>
+					<div class="alert-message warning">
+						<h4>{{ _('JavaScript required!') }}</h4>
+						<p>{{ _('You must enable JavaScript in your browser or LuCI will not work properly.') }}</p>
+					</div>
+				</noscript>
+
+				<div id="tabmenu" style="display:none"></div>
