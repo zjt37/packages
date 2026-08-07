@@ -73,5 +73,6 @@ fi
 mount -t f2fs "$NEWLOOP" /overlay 2>/dev/null || { reboot; exit 1; }
 sync
 
-echo "98-custom-gateway: overlay expansion DONE"
+echo "98-custom-gateway: overlay expansion DONE, rebooting to use standard overlay mount"
+reboot
 exit 0
