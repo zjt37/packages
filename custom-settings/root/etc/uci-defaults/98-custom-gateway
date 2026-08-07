@@ -77,3 +77,4 @@ echo "98-custom-gateway: overlay expansion DONE"
 rm -f /etc/uci-defaults/98-custom-gateway
 sync
 exit 0
+reboot
