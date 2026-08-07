@@ -2635,3 +2635,10 @@ body.modal-overlay-active #modal_overlay {
     width: auto;
     margin: .125em;
 }
+
+/* ---- system -> software (package manager): wrap long descriptions ---- */
+[data-page="admin-system-package-manager"] #packages .td,
+[data-page="admin-system-package-manager"] #packages td {
+    white-space: normal;
+    word-break: break-word;
+}
