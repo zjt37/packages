@@ -2642,3 +2642,23 @@ body.modal-overlay-active #modal_overlay {
     white-space: normal;
     word-break: break-word;
 }
+
+/* ---- global: wrap long text in modal dialogs (package descriptions etc.) ---- */
+.modal p,
+.modal li,
+.modal dd,
+.modal dt,
+.modal div {
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+/* ---- global: vertically center checkboxes and radio buttons ---- */
+input[type="checkbox"],
+input[type="radio"] {
+    vertical-align: middle;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
