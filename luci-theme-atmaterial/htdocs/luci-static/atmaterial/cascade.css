@@ -370,7 +370,8 @@ h2 {
 
 h3 {
     margin: 5px 0 0 0;
-    font-size: 10pt;
+    font-size: 15pt;
+    font-weight: 700;
     padding-bottom: 10px;
 }
 
@@ -515,19 +516,29 @@ table > tr:nth-of-type(odd),
 [data-page="admin-status-overview"] .cbi-section div[style*="grid-template-columns"] {
     display: flex !important;
     flex-wrap: wrap !important;
-    align-items: stretch;
+    justify-content: center;
+    align-items: center;
+    border: 1px solid #e4eaec;
+    border-radius: 4px;
+    background: #f9f9f9;
+    padding: .25em;
+    margin: 0 0 1em 0;
 }
 
 [data-page="admin-status-overview"] .cbi-section div[style*="grid-template-columns"] .ifacebox {
-    flex: 1 1 auto;
-    min-width: 130px;
-    margin: .5em;
+    flex: 0 1 auto;
+    min-width: 90px;
     width: auto !important;
     flex-direction: column !important;
     align-items: center;
     justify-content: center;
     gap: .25em;
-    padding: .6em 1em;
+    padding: .5em .75em;
+    margin: 0;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    text-align: center;
 }
 
 [data-page="admin-status-overview"] .cbi-section div[style*="grid-template-columns"] .ifacebox .cbi-tooltip-container,
@@ -547,11 +558,19 @@ table > tr:nth-of-type(odd),
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: .1em;
 }
 
 [data-page="admin-status-overview"] .cbi-section div[style*="grid-template-columns"] .ifacebox-body br {
     display: none;
+}
+
+[data-page="admin-status-overview"] .cbi-section div[style*="grid-template-columns"] .ifacebox-body img {
+    display: block;
+    margin: 0 auto;
+    width: 32px;
+    height: 32px;
 }
 
 [data-page="admin-status-overview"] .cbi-section div[style*="grid-template-columns"] .port-speed-fallback {
@@ -560,16 +579,14 @@ table > tr:nth-of-type(odd),
     line-height: 1.4;
 }
 
+[data-page="admin-status-overview"] .cbi-section:nth-of-type(6) { display: none !important; }
 [data-page="admin-status-overview"] .cbi-section:nth-of-type(1) { order: 1; }
-[data-page="admin-status-overview"] .cbi-section:nth-of-type(2),
-[data-page="admin-status-overview"] .cbi-section:nth-of-type(5),
-[data-page="admin-status-overview"] .cbi-section:nth-of-type(7) {
-    display: none !important;
-}
-[data-page="admin-status-overview"] .cbi-section:nth-of-type(3) { order: 3; }
-[data-page="admin-status-overview"] .cbi-section:nth-of-type(4) { order: 2; }
-[data-page="admin-status-overview"] .cbi-section:nth-of-type(6) { order: 4; }
+[data-page="admin-status-overview"] .cbi-section:nth-of-type(2) { order: 2; }
+[data-page="admin-status-overview"] .cbi-section:nth-of-type(4) { order: 3; }
+[data-page="admin-status-overview"] .cbi-section:nth-of-type(5) { order: 4; }
+[data-page="admin-status-overview"] .cbi-section:nth-of-type(7) { order: 5; }
 [data-page="admin-status-overview"] .cbi-section:nth-of-type(8) { order: 6; }
+[data-page="admin-status-overview"] .cbi-section:nth-of-type(3) { order: 7; }
 
 .cbi-section:last-child {
     margin: 10px 0 0 0;
@@ -897,6 +914,10 @@ footer > a {
     background: #333;
 }
 
+.main > .main-left > .nav > .slide > .slide-menu > li:hover > a {
+    color: #ffffff;
+}
+
 .main > .main-left > .nav > .slide > .slide-menu > .active:hover {
     background-color: #333;
     cursor: pointer;
@@ -1093,6 +1114,18 @@ td > table > tbody > tr > td,
     text-decoration: none;
     color: #76838f;
     padding: 0.9rem 1.5rem;
+}
+
+.cbi-tabmenu > li.cbi-tab > a {
+    color: #000;
+    font-weight: 700;
+    background-color: #fff;
+}
+
+.cbi-tabmenu > li > a:hover,
+.cbi-tabmenu > li:hover > a {
+    color: #333;
+    background-color: #e4eaec;
 }
 
 .tabs > li[class~="active"],
@@ -1758,6 +1791,33 @@ body.modal-overlay-active #modal_overlay {
     min-width: 0;
 }
 
+#cbi-firewall-defaults .cbi-value {
+    justify-content: center;
+    align-items: center;
+}
+
+#cbi-firewall-defaults .cbi-value-title {
+    flex: 0 0 180px;
+}
+
+#cbi-firewall-defaults .cbi-value-field {
+    flex: 0 1 25rem;
+    min-width: 12rem;
+    margin-left: 20px;
+}
+
+#cbi-firewall-defaults .cbi-value input[type="text"],
+#cbi-firewall-defaults .cbi-value input[type="password"] {
+    min-width: 0;
+    width: 100%;
+}
+
+#cbi-firewall-defaults .cbi-value select,
+#cbi-firewall-defaults .cbi-value .cbi-input-select,
+#cbi-firewall-defaults .cbi-value .cbi-dropdown {
+    width: 100%;
+}
+
 [data-page^="admin-network-firewall"] .table {
     border: 0 !important;
     font-size: 13px;
@@ -1780,6 +1840,92 @@ body.modal-overlay-active #modal_overlay {
 [data-page^="admin-network-firewall"] .table > .tr:first-child > .td,
 [data-page^="admin-network-firewall"] .table > .tr:first-child > .th {
     border-top: 0;
+}
+
+[data-page^="admin-network-firewall"] .cbi-section-table-row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    box-shadow: 0 2px 2px 0 rgba(0, 0, 0, .16), 0 0 2px 0 rgba(0, 0, 0, .12);
+    margin-bottom: 1rem;
+    text-align: center !important;
+    background: #f9f9f9;
+}
+
+[data-page^="admin-network-firewall"] .cbi-section-table-row:last-child {
+    margin-bottom: 0;
+}
+
+#cbi-firewall-zone .td.cbi-value-field,
+#cbi-firewall-zone .td.cbi-section-table-cell,
+#cbi-firewall-zone .th.cbi-section-table-cell {
+    width: auto !important;
+    flex: 1 1 0;
+    min-width: 5rem;
+}
+
+[data-page^="admin-network-firewall"] .td.cbi-value-field,
+[data-page^="admin-network-firewall"] .td.cbi-section-table-cell,
+[data-page^="admin-network-firewall"] .th.cbi-section-table-cell {
+    display: inline-block;
+    flex: 10 10 auto;
+    flex-basis: 50%;
+    text-align: center;
+    white-space: normal;
+}
+
+[data-page^="admin-network-firewall"] .cbi-section-table-cell {
+    line-height: 1.1;
+    align-self: flex-end;
+    flex: 1 1 0;
+}
+
+[data-page^="admin-network-firewall"] .tr.cbi-section-table-titles {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    background: transparent;
+    margin-bottom: 0.25rem;
+}
+
+[data-page^="admin-network-firewall"] .tr.cbi-section-table-titles .cbi-section-table-cell,
+#cbi-firewall-zone .tr.cbi-section-table-titles .cbi-section-table-cell {
+    display: inline-block;
+    flex: 1 1 0;
+    min-width: 5rem;
+    width: auto !important;
+    text-align: center;
+    font-weight: 700;
+}
+
+[data-page^="admin-network-firewall"] .tr.cbi-section-table-titles,
+[data-page^="admin-network-firewall"] .th {
+    font-weight: 700;
+}
+
+[data-page^="admin-network-firewall"] .td.cbi-section-actions,
+#cbi-firewall-zone .td.cbi-section-actions,
+#cbi-firewall-zone .th.cbi-section-actions {
+    text-align: right !important;
+    vertical-align: middle;
+    margin-left: auto;
+    width: auto !important;
+    flex: 0 0 auto;
+}
+
+[data-page^="admin-network-firewall"] .td.cbi-section-actions > * {
+    display: inline-flex;
+}
+
+[data-page^="admin-network-firewall"] .td.cbi-section-actions > * > *,
+[data-page^="admin-network-firewall"] .td.cbi-section-actions > * > form > * {
+    margin: 0 5px;
+}
+
+[data-page^="admin-network-firewall"] .td.cbi-section-actions > * > form {
+    display: inline-flex;
+    margin: 0;
 }
 
 [data-page^="admin-network-firewall"] .cbi-section-table .tr:hover .td,
@@ -2332,4 +2478,160 @@ body.modal-overlay-active #modal_overlay {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+[data-page="admin-status-overview"] .network-status-table .ifacebox-head {
+    width: 100%;
+}
+
+[data-page="admin-status-overview"] .network-status-table .ifacebox-head.active {
+    background: #b2efd0;
+}
+
+[data-page="admin-status-overview"] .network-status-table + table .cbi-progressbar > div {
+    width: 100% !important;
+}
+
+.cbi-section .ifacebox {
+    text-align: center !important;
+}
+
+.cbi-section .ifacebox > .ifacebox-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.cbi-section .ifacebox-body img {
+    display: block;
+    margin: 0 auto;
+    width: 32px;
+    height: 32px;
+}
+
+/* ---- firewall zones: native table layout (material-like) ---- */
+#cbi-firewall-zone .table {
+    display: table !important;
+}
+
+#cbi-firewall-zone .cbi-section-table-row,
+#cbi-firewall-zone .tr.cbi-section-table-titles {
+    display: table-row !important;
+    box-shadow: none;
+    margin-bottom: 0;
+    background: transparent;
+}
+
+#cbi-firewall-zone .td.cbi-value-field,
+#cbi-firewall-zone .td.cbi-section-table-cell,
+#cbi-firewall-zone .th.cbi-section-table-cell {
+    display: table-cell !important;
+    width: auto !important;
+    min-width: 0;
+    vertical-align: middle;
+    padding: 8px 10px;
+    text-align: center;
+}
+
+#cbi-firewall-zone .cbi-section-tbody .cbi-section-table-row:nth-of-type(even) {
+    background: #f9f9f9;
+}
+
+#cbi-firewall-zone .tr.cbi-section-table-titles .th {
+    background: #f5f5f5;
+}
+
+/* ---- status -> firewall (nftables): material-like ---- */
+[data-page="admin-status-nftables"] .nft-table {
+    overflow-x: auto;
+}
+
+[data-page="admin-status-nftables"] .nft-chain {
+    margin-bottom: 1.75rem;
+}
+
+[data-page="admin-status-nftables"] .nft-chain h4 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #333;
+    margin: 0 0 .35rem;
+}
+
+[data-page="admin-status-nftables"] .nft-chain-hook {
+    margin: 0 0 .5rem;
+}
+
+[data-page="admin-status-nftables"] .nft-chain-hook ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    color: #666;
+}
+
+[data-page="admin-status-nftables"] .nft-rules {
+    border: 1px solid #e0e0e0;
+}
+
+[data-page="admin-status-nftables"] .nft-rules tr,
+[data-page="admin-status-nftables"] .table > .tr {
+    background: transparent !important;
+}
+
+[data-page="admin-status-nftables"] .nft-rules tr:nth-of-type(even) {
+    background: #fafafa !important;
+}
+
+[data-page="admin-status-nftables"] .nft-rules .td,
+[data-page="admin-status-nftables"] .nft-rules td {
+    white-space: normal;
+    word-break: break-word;
+    padding: .5em .6em;
+    border-top: 1px solid #ececec;
+    text-align: center;
+    vertical-align: middle;
+}
+
+[data-page="admin-status-nftables"] .nft-rules .table-titles .th,
+[data-page="admin-status-nftables"] .nft-rules .table-titles th {
+    background: #f5f5f5;
+    font-weight: 700;
+    text-align: center;
+}
+
+[data-page="admin-status-nftables"] .nft-rules .ifacebadge,
+[data-page="admin-status-nftables"] .nft-set,
+[data-page="admin-status-nftables"] .nft-list {
+    display: inline-block;
+    width: auto;
+    margin: .125em;
+    background: #f0f0f0;
+}
+
+[data-page="admin-status-nftables"] .nft-set-items,
+[data-page="admin-status-nftables"] .nft-list-items {
+    display: inline-block;
+    max-width: none;
+}
+
+[data-page="admin-status-nftables"] .nft-rules .nft-comment {
+    display: inline-block;
+    width: auto;
+    margin: .125em;
+}
+
+[data-page="admin-status-nftables"] .nft-comment .cbi-tooltip,
+[data-page="admin-status-nftables"] .nft-counter .cbi-tooltip {
+    display: none !important;
+}
+
+[data-page="admin-status-nftables"] .nft-comment + .ifacebadge,
+[data-page="admin-status-nftables"] .nft-comment + .nft-set,
+[data-page="admin-status-nftables"] .nft-comment + .nft-list,
+[data-page="admin-status-nftables"] .nft-comment + .nft-set-items,
+[data-page="admin-status-nftables"] .nft-comment + .nft-list-items {
+    display: inline-block;
+    width: auto;
+    margin: .125em;
 }
