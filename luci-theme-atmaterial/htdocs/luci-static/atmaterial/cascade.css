@@ -2267,3 +2267,69 @@ body.modal-overlay-active #modal_overlay {
         background: #bfbfbf;
     }
 }
+
+.cbi-dynlist {
+    display: inline-flex;
+    flex-direction: column;
+    height: auto;
+    min-height: 30px;
+    min-width: 210px;
+    max-width: 400px;
+    width: auto;
+}
+
+.cbi-dynlist > .item {
+    position: relative;
+    overflow: hidden;
+    word-break: break-all;
+    cursor: default;
+    user-select: text;
+    margin-bottom: 4px;
+    padding: 6px 2em 6px 4px;
+    color: #76838f;
+    background: #fff;
+    border: 1px solid #e4eaec;
+    border-radius: 3px;
+}
+
+.cbi-dynlist > .item:hover {
+    border-color: #F47932;
+}
+
+.cbi-dynlist > .item::after {
+    content: "\2715";
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    bottom: -1px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 6px;
+    font-weight: 700;
+    color: #cc181e;
+    pointer-events: auto;
+    border: 1px solid #e4eaec;
+    border-radius: 0 3px 3px 0;
+}
+
+.cbi-dynlist > .item::after:hover {
+    color: #fff;
+    background: #cc181e;
+    border-color: #cc181e;
+}
+
+.cbi-dynlist > .item > span {
+    pointer-events: none;
+}
+
+.cbi-dynlist > .item.dragging {
+    opacity: 0.5;
+}
+
+.cbi-dynlist > .add-item > input,
+.cbi-dynlist > .add-item > button {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
