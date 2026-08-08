@@ -2639,16 +2639,21 @@ body.modal-overlay-active #modal_overlay {
     margin: .125em;
 }
 
-/* ---- system -> software (package manager): wrap long descriptions ---- */
-[data-page="admin-system-package-manager"] #packages .td,
-[data-page="admin-system-package-manager"] #packages td {
-    white-space: normal;
-    word-break: break-word;
-}
-
-/* ---- status -> processes: wrap long command lines ---- */
-[data-page="admin-status-processes"] .table .td,
-[data-page="admin-status-processes"] .table .tr {
+/* ---- global: wrap long text in table cells (all pages) ---- */
+.table > .tbody > .tr > .td,
+.table > .tbody > .tr > .th,
+.table > .tfoot > .tr > .td,
+.table > .tfoot > .tr > .th,
+.table > .thead > .tr > .td,
+.table > .thead > .tr > .th,
+.table > .tr > .td,
+.table > .tr > .th,
+table > tbody > tr > td,
+table > tbody > tr > th,
+table > thead > tr > td,
+table > thead > tr > th,
+table > tr > td,
+table > tr > th {
     white-space: normal;
     word-break: break-word;
     overflow-wrap: break-word;
