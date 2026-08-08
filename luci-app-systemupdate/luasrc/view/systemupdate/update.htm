@@ -103,7 +103,7 @@ function pollLog() {
 				var content = document.getElementById('log-content');
 				content.value = data;
 				content.scrollTop = content.scrollHeight;
-				if (data.indexOf('刷入完成') !== -1 || data.indexOf('错误') !== -1 || data.indexOf('重启') !== -1) {
+				if (data.indexOf('错误') !== -1 || data.indexOf('正在重启系统') !== -1) {
 					clearInterval(logTimer);
 					logTimer = null;
 				}

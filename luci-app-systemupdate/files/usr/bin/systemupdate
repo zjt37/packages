@@ -117,9 +117,10 @@ download_firmware() {
         fi
     done
     wait $CURL_PID
+    CURL_STATUS=$?
     echo "" > /tmp/systemupdate_progress
     
-    if [ $? -ne 0 ]; then
+    if [ $CURL_STATUS -ne 0 ]; then
         echo "错误: 下载失败"
         return 1
     fi
@@ -158,6 +159,16 @@ backup_overlay() {
     fi
 }
 
+countdown_reboot() {
+    echo "固件下载完成，系统将在 10 秒后重启..."
+    for i in 10 9 8 7 6 5 4 3 2 1; do
+        echo "${i}..."
+        sleep 1
+    done
+    echo "正在重启系统..."
+    echo b > /proc/sysrq-trigger
+}
+
 fresh_install() {
     echo "=== 全新安装 ==="
     
@@ -181,8 +192,7 @@ fresh_install() {
     
     if [ $? -eq 0 ]; then
         echo "刷入完成！"
-        echo "系统即将重启..."
-        echo b > /proc/sysrq-trigger
+        countdown_reboot
     else
         echo "错误: 刷入失败"
         return 1
@@ -227,8 +237,7 @@ fi
 EOF
         chmod +x /overlay/etc/uci-defaults/99-restore-overlay
         
-        echo "系统即将重启..."
-        echo b > /proc/sysrq-trigger
+        countdown_reboot
     else
         echo "错误: 刷入失败"
         return 1
