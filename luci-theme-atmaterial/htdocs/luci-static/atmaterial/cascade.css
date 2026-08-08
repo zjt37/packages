@@ -2651,20 +2651,6 @@ body.modal-overlay-active #modal_overlay {
     overflow-wrap: break-word;
 }
 
-/* ---- global: wrap long text in all tables and text blocks (force override) ---- */
-.table .td,
-.table .tr,
-table td,
-table th,
-p,
-li,
-dd,
-dt {
-    white-space: normal !important;
-    word-break: break-word !important;
-    overflow-wrap: break-word !important;
-}
-
 /* ---- global: wrap long text in modal dialogs (package descriptions etc.) ---- */
 .modal p,
 .modal li,
