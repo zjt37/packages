@@ -1,0 +1,22 @@
+#!/bin/sh /etc/rc.common
+
+# 检测扩容完成后等待 Web UI 就绪，再自动重启
+# 命名为 zz 保证在 uci-defaults(done, S99done) 之后执行
+START=99
+STOP=00
+
+start() {
+	[ -f /tmp/need-reboot ] || exit 0
+
+	# 等 uhttpd(Web UI) 就绪，最多等 120 秒
+	i=0
+	while [ "$i" -lt 120 ]; do
+		pidof uhttpd >/dev/null 2>&1 && break
+		sleep 2
+		i=$((i+2))
+	done
+
+	rm -f /tmp/need-reboot
+	sync
+	reboot
+}

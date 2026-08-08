@@ -74,7 +74,7 @@ mount -t f2fs "$NEWLOOP" /overlay 2>/dev/null || { reboot; exit 1; }
 sync
 
 echo "98-custom-gateway: overlay expansion DONE"
+touch /tmp/need-reboot
 rm -f /etc/uci-defaults/98-custom-gateway
 sync
 exit 0
-reboot

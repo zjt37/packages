@@ -26,6 +26,8 @@ endef
 define Package/custom-settings/install
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
 	$(INSTALL_BIN) ./root/etc/uci-defaults/98-custom-gateway $(1)/etc/uci-defaults/
+	$(INSTALL_DIR) $(1)/etc/init.d
+	$(INSTALL_BIN) ./root/etc/init.d/zz-custom-reboot $(1)/etc/init.d/
 endef
 
 $(eval $(call BuildPackage,custom-settings))
