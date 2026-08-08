@@ -1,11 +1,14 @@
 #!/bin/sh
 
 # 第一次开机综合脚本：设置网关、DNS、自动扩容 overlay
-# 扩容为两阶段：本脚本 reboot 中断后，重启时 uci-defaults 会重新执行
+# 结构：
+#   1. 设置网关和 DNS
+#   2. 自动扩容 overlay（扩分区/扩文件系统，完成后不重启）
+#   3. 重启脚本（全部运行完后的最后一次重启）
 
 export PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
-# === 1. 设置网关和 DNS ===
+# ============ 1. 设置网关和 DNS ============
 uci batch <<-'EOF'
 	set network.lan.gateway='192.168.2.2'
 	set network.lan.dns='127.0.0.1'
@@ -20,7 +23,7 @@ uci batch <<-'EOF'
 	commit dhcp
 EOF
 
-# === 2. 自动扩容 overlay ===
+# ============ 2. 自动扩容 overlay ============
 DISK=/dev/sda
 [ -b "$DISK" ] || exit 0
 [ -e /sys/block/sda/sda2 ] || exit 0
@@ -41,7 +44,7 @@ P2_SIZE=$(cat /sys/block/sda/sda2/size)
 P2_END=$((P2_START + P2_SIZE))
 FREE=$((DISK_SECTORS - P2_END))
 
-# 阶段1：扩分区到全盘，重启后自动续跑
+# 阶段2a：扩分区到全盘(完成后必须重启内核才识别新大小)
 if [ "$FREE" -gt 32 ]; then
 	echo "98-custom-gateway: growing /dev/sda2 to full disk"
 	parted -s "$DISK" resizepart 2 100% || exit 1
@@ -50,7 +53,7 @@ if [ "$FREE" -gt 32 ]; then
 	exit 1
 fi
 
-# 阶段2：扩大 f2fs 文件系统
+# 阶段2b：扩大 f2fs 文件系统(本次运行完成后不重启，交给第3部分)
 LOOP_SECTORS=$(cat /sys/block/loop0/size 2>/dev/null || echo 0)
 FS_KB=$(df -P /overlay 2>/dev/null | awk 'NR==2{print $2}')
 LOOP_KB=$((LOOP_SECTORS / 2))
@@ -70,11 +73,13 @@ if ! resize.f2fs "$NEWLOOP" 2>/dev/null; then
 	mount -t f2fs /dev/loop0 /overlay 2>/dev/null
 	exit 1
 fi
-mount -t f2fs "$NEWLOOP" /overlay 2>/dev/null || { reboot; exit 1; }
+mount -t f2fs "$NEWLOOP" /overlay 2>/dev/null || exit 1
 sync
 
 echo "98-custom-gateway: overlay expansion DONE"
 rm -f /etc/uci-defaults/98-custom-gateway
 sync
-exit 0
+
+# ============ 3. 重启脚本（最后一次重启） ============
 reboot
+exit 0
