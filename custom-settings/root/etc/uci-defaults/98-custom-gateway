@@ -1,10 +1,10 @@
 #!/bin/sh
 
-# 第一次开机综合脚本：设置网关、DNS、自动扩容 overlay
+# 综合脚本：设置网关/DNS、自动扩容 overlay、最后重启
 # 结构：
 #   1. 设置网关和 DNS
-#   2. 自动扩容 overlay（扩分区/扩文件系统，完成后不重启）
-#   3. 重启脚本（全部运行完后的最后一次重启）
+#   2. 自动扩容 overlay（此部分结束时不重启）
+#   3. 重启脚本（最后一次重启）
 
 export PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
@@ -27,59 +27,62 @@ EOF
 DISK=/dev/sda
 [ -b "$DISK" ] || exit 0
 [ -e /sys/block/sda/sda2 ] || exit 0
-
 command -v parted >/dev/null 2>&1 || exit 0
 command -v resize.f2fs >/dev/null 2>&1 || exit 0
 command -v losetup >/dev/null 2>&1 || exit 0
 
-# 删掉占用磁盘的多余分区(固件自带的 rootfs_data 分区，系统实际不用)
+DISK_SECTORS=$(cat /sys/block/sda/size)
+KERN_SIZE=$(cat /sys/block/sda/sda2/size)          # 内核当前分区大小
+TABLE_END=$(parted -s "$DISK" unit s print 2>/dev/null |
+	awk '$1==2 && $3 ~ /s$/ {gsub("s","",$3); print $3}')
+TABLE_END=${TABLE_END:-$KERN_SIZE}
+
+# 2a. 删除多余分区(sda3)
 if [ -e /sys/block/sda/sda3 ]; then
 	echo "98-custom-gateway: removing /dev/sda3"
 	parted -s "$DISK" rm 3 2>/dev/null || exit 1
 fi
 
-DISK_SECTORS=$(cat /sys/block/sda/size)
-P2_START=$(cat /sys/block/sda/sda2/start)
-P2_SIZE=$(cat /sys/block/sda/sda2/size)
-P2_END=$((P2_START + P2_SIZE))
-FREE=$((DISK_SECTORS - P2_END))
-
-# 阶段2a：扩分区到全盘(完成后必须重启内核才识别新大小)
-if [ "$FREE" -gt 32 ]; then
-	echo "98-custom-gateway: growing /dev/sda2 to full disk"
+# 2b. 分区表尚未扩到全盘：只改分区表，不立即扩容文件系统
+#     内核未生效 → resize 留到下次开机（脚本保留）
+CHANGED=0
+if [ "$TABLE_END" -lt "$((DISK_SECTORS - 8))" ]; then
+	echo "98-custom-gateway: resizing partition table to full disk"
 	parted -s "$DISK" resizepart 2 100% || exit 1
 	sync
-	reboot
-	exit 1
+	CHANGED=1
 fi
 
-# 阶段2b：扩大 f2fs 文件系统(本次运行完成后不重启，交给第3部分)
+KERN_SIZE=$(cat /sys/block/sda/sda2/size)
 LOOP_SECTORS=$(cat /sys/block/loop0/size 2>/dev/null || echo 0)
 FS_KB=$(df -P /overlay 2>/dev/null | awk 'NR==2{print $2}')
-LOOP_KB=$((LOOP_SECTORS / 2))
-[ -z "$FS_KB" ] && exit 1
-[ "$((LOOP_KB - FS_KB))" -le 8192 ] && exit 0
 
-echo "98-custom-gateway: growing f2fs overlay filesystem"
-OFF=$(cat /sys/block/loop0/loop/offset 2>/dev/null)
-umount /overlay || exit 1
-NEWLOOP=$(losetup -f --show -o "$OFF" "$DISK"2 2>/dev/null)
-[ -b "$NEWLOOP" ] || { mount -t f2fs /dev/loop0 /overlay 2>/dev/null; exit 1; }
+# 2c. 内核分区未变大：resize 无法进行，跳过程序，交给第 3 步重启
+if [ "$((KERN_SIZE - LOOP_SECTORS))" -lt 0 ] || [ -z "$FS_KB" ] ||
+   [ "$((KERN_SIZE / 2 - FS_KB))" -le 8192 ]; then
+	echo "98-custom-gateway: NOT upgrading filesystem now (kernel partition unchanged)"
+else
+	# 2d. 内核已识别新大小：扩大 f2fs，本次不重启
+	echo "98-custom-gateway: growing f2fs overlay filesystem"
+	OFF=$(cat /sys/block/loop0/loop/offset 2>/dev/null)
+	umount /overlay || echo "98-custom-gateway: umount skipped"
 
-mount -t f2fs "$NEWLOOP" /overlay 2>/dev/null
-umount /overlay 2>/dev/null
-
-if ! resize.f2fs "$NEWLOOP" 2>/dev/null; then
-	mount -t f2fs /dev/loop0 /overlay 2>/dev/null
-	exit 1
+	NEWLOOP=$(losetup -f --show -o "$OFF" "$DISK"2 2>/dev/null)
+	if [ -b "$NEWLOOP" ]; then
+		if resize.f2fs "$NEWLOOP" 2>/dev/null; then
+			mount -t f2fs "$NEWLOOP" /overlay 2>/dev/null && sync
+			echo "98-custom-gateway: overlay expansion DONE"
+			rm -rf /etc/uci-defaults/98-custom-gateway
+		else
+			mount -t f2fs /dev/loop0 /overlay 2>/dev/null
+		fi
+	else
+		mount -t f2fs /dev/loop0 /overlay 2>/dev/null
+	fi
 fi
-mount -t f2fs "$NEWLOOP" /overlay 2>/dev/null || exit 1
+
 sync
 
-echo "98-custom-gateway: overlay expansion DONE"
-rm -f /etc/uci-defaults/98-custom-gateway
-sync
-
-# ============ 3. 重启脚本（最后一次重启） ============
+# ============ 3. 重启脚本 ============
 reboot
 exit 0
