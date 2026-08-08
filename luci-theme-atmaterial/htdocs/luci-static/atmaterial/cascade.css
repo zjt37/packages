@@ -2636,11 +2636,22 @@ body.modal-overlay-active #modal_overlay {
     margin: .125em;
 }
 
-/* ---- system -> software (package manager): wrap long descriptions ---- */
-[data-page="admin-system-package-manager"] #packages .td,
-[data-page="admin-system-package-manager"] #packages td {
-    white-space: normal;
+/* ---- global: wrap long text in all tables and text blocks ---- */
+table td,
+table th,
+.cbi-table td,
+.cbi-section td,
+.cbi-value-field,
+.cbi-value-description,
+.cbi-section-descr,
+.panel-title,
+div,
+p,
+li,
+dd,
+dt {
     word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 /* ---- global: wrap long text in modal dialogs (package descriptions etc.) ---- */
