@@ -2450,11 +2450,14 @@ body.modal-overlay-active #modal_overlay {
     bottom: -1px;
     display: inline-flex;
     align-items: center;
-    padding: 0 6px;
+    justify-content: center;
+    width: 2em;
+    box-sizing: border-box;
     font-weight: 700;
     color: #cc181e;
     pointer-events: auto;
-    border: 1px solid #e4eaec;
+    background: #fff;
+    border: 1px solid #b0b0b0;
     border-radius: 0 3px 3px 0;
 }
 
@@ -2668,5 +2671,38 @@ input[type="radio"] {
     vertical-align: middle;
     margin-top: 0;
     margin-bottom: 0;
+}
+
+/* ---- global: wrap long text in plain text blocks only (never touches forms/tables) ---- */
+p,
+dd,
+dt,
+pre {
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+}
+
+/* ---- cbi-dropdown must keep single-line items (lists exclude from wrapping) ---- */
+.cbi-dropdown > ul > li {
+    white-space: nowrap !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+}
+
+/* ---- status -> routes (json view): center content ---- */
+[data-page="admin-status-routesj"] .table .td,
+[data-page="admin-status-routesj"] .table .tr,
+[data-page="admin-status-routesj"] table td,
+[data-page="admin-status-routesj"] table th {
+    text-align: center !important;
+}
+
+/* ---- status -> processes: center content ---- */
+[data-page="admin-status-processes"] .table .td,
+[data-page="admin-status-processes"] .table .tr,
+[data-page="admin-status-processes"] table td,
+[data-page="admin-status-processes"] table th {
+    text-align: center !important;
 }
 
