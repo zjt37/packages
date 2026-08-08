@@ -2636,22 +2636,33 @@ body.modal-overlay-active #modal_overlay {
     margin: .125em;
 }
 
-/* ---- global: wrap long text in all tables and text blocks ---- */
+/* ---- system -> software (package manager): wrap long descriptions ---- */
+[data-page="admin-system-package-manager"] #packages .td,
+[data-page="admin-system-package-manager"] #packages td {
+    white-space: normal;
+    word-break: break-word;
+}
+
+/* ---- status -> processes: wrap long command lines ---- */
+[data-page="admin-status-processes"] .table .td,
+[data-page="admin-status-processes"] .table .tr {
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+/* ---- global: wrap long text in all tables and text blocks (force override) ---- */
+.table .td,
+.table .tr,
 table td,
 table th,
-.cbi-table td,
-.cbi-section td,
-.cbi-value-field,
-.cbi-value-description,
-.cbi-section-descr,
-.panel-title,
-div,
 p,
 li,
 dd,
 dt {
-    word-break: break-word;
-    overflow-wrap: break-word;
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
 }
 
 /* ---- global: wrap long text in modal dialogs (package descriptions etc.) ---- */
