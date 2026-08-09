@@ -2711,3 +2711,27 @@ pre {
     text-align: center !important;
 }
 
+/* ---- status -> realtime: center content ---- */
+[data-page^="admin-status-realtime"] .table .td,
+[data-page^="admin-status-realtime"] .table .tr,
+[data-page^="admin-status-realtime"] table td,
+[data-page^="admin-status-realtime"] table th {
+    text-align: center !important;
+}
+
+/* ---- system -> startup: center content ---- */
+[data-page="admin-system-startup"] .table .td,
+[data-page="admin-system-startup"] .table .tr,
+[data-page="admin-system-startup"] table td,
+[data-page="admin-system-startup"] table th {
+    text-align: center !important;
+}
+
+/* ---- system -> mounts: center content ---- */
+[data-page="admin-system-mounts"] .table .td,
+[data-page="admin-system-mounts"] .table .tr,
+[data-page="admin-system-mounts"] table td,
+[data-page="admin-system-mounts"] table th {
+    text-align: center !important;
+}
+
