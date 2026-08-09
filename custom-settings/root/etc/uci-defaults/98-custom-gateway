@@ -8,6 +8,7 @@ uci batch <<-EOF
 	set network.lan.dns='127.0.0.1'
 	commit network
 	set dhcp.lan.ignore=1
+	set dhcp.lan.dhcpv4='disabled'
 	set dhcp.lan.dhcpv6='disabled'
 	set dhcp.lan.ra='disabled'
 	set dhcp.lan.ra_slaac='0'
