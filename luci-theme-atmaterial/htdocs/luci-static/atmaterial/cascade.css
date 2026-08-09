@@ -984,8 +984,8 @@ footer > .breadcrumb {
 
 .node-main-login > .main .container {
     display: inline-block;
-    padding: 3rem 5rem;
-    margin-top: 20vh !important;
+    padding: 2rem 3.5rem;
+    margin-top: 3vh !important;
     background-color: #FFF;
     box-shadow: 0 2px 2px 0 rgba(0, 0, 0, .16), 0 0 2px 0 rgba(0, 0, 0, .12);
     text-align: left;
@@ -1006,8 +1006,8 @@ footer > .breadcrumb {
 
 .node-main-login > .main .cbi-input-user,
 .node-main-login > .main .cbi-input-password {
-    min-width: 18rem;
-    height: 40px;
+    min-width: 14rem;
+    height: 34px;
     font-size: 12pt;
 }
 
