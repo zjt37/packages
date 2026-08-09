@@ -11,6 +11,7 @@ define Package/custom-settings
   CATEGORY:=Extra packages
   TITLE:=Custom gateway and DNS settings for bypass router
   PKGARCH:=all
+  DEPENDS:=+parted +blkid +e2fsprogs +block-mount
 endef
 
 define Package/custom-settings/description
