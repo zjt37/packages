@@ -31,8 +31,8 @@ case "$OVERLAY_DEV" in
 esac
 
 # 尾部空闲区域(最后一段 Free)
-FREE_START=$(parted -s "$DISK" unit s print free | awk '$4=="Free" {s=$1} END {print s}')
-FREE_END=$(parted -s "$DISK" unit s print free | awk '$4=="Free" {e=$2} END {print e}')
+FREE_START=$(parted -s "$DISK" unit s print free | awk '$4=="Free" {s=$1} END {gsub("s","",s); print s}')
+FREE_END=$(parted -s "$DISK" unit s print free | awk '$4=="Free" {e=$2} END {gsub("s","",e); print e}')
 [ -n "$FREE_START" ] || exit 0
 
 FREE_SECTORS=$((FREE_END - FREE_START + 1))
@@ -57,14 +57,30 @@ sync
 umount /tmp/overlay_expand
 rmdir /tmp/overlay_expand
 
+# 关键：修改 fstab，把 /overlay 指到新分区
+# (固件自带 overlay 镜像 label 也是 rootfs_data，不写 fstab 系统会优先挂 loop0)
 NEW_UUID=$(blkid -s UUID -o value "$NEW_PART")
+[ -n "$NEW_UUID" ] || exit 0
 
-# 写 fstab(不存在则创建)
 [ -f /etc/config/fstab ] || block detect > /etc/config/fstab
-uci get fstab.@mount[0] >/dev/null 2>&1 || uci add fstab mount >/dev/null 2>&1
-uci set fstab.@mount[0].uuid="$NEW_UUID"
-uci set fstab.@mount[0].target="/overlay"
-uci set fstab.@mount[0].enabled="1"
+
+i=0
+found=""
+while uci get "fstab.@mount[$i]" >/dev/null 2>&1; do
+	if [ "$(uci get "fstab.@mount[$i].target" 2>/dev/null)" = "/overlay" ]; then
+		uci set "fstab.@mount[$i].uuid"="$NEW_UUID"
+		uci set "fstab.@mount[$i].enabled"='1'
+		found=1
+		break
+	fi
+	i=$((i + 1))
+done
+if [ -z "$found" ]; then
+	uci add fstab mount >/dev/null
+	uci set "fstab.@mount[-1].uuid"="$NEW_UUID"
+	uci set "fstab.@mount[-1].target"='/overlay'
+	uci set "fstab.@mount[-1].enabled"='1'
+fi
 uci commit fstab
 sync
 
