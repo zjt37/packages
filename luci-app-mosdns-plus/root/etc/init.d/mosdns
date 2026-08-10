@@ -801,14 +801,18 @@ reload_service() {
 }
 
 setcron() {
+	mkdir -p /etc/crontabs
+	[ -f $CRON_FILE ] || touch $CRON_FILE
 	sed -i '/mosdns.uc/d' $CRON_FILE 2>/dev/null
 	[ "$geo_auto_update" -eq 1 ] && echo "0 $geo_update_day_time * * $geo_update_week_time /usr/share/mosdns/mosdns.uc update" >> $CRON_FILE
-	crontab $CRON_FILE
+	crontab $CRON_FILE 2>/dev/null
 }
 
 delcron() {
+	mkdir -p /etc/crontabs
+	[ -f $CRON_FILE ] || touch $CRON_FILE
 	sed -i '/mosdns.uc/d' $CRON_FILE 2>/dev/null
-	crontab $CRON_FILE
+	crontab $CRON_FILE 2>/dev/null
 }
 
 start_service() {
