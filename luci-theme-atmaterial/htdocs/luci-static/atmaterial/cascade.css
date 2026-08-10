@@ -737,7 +737,7 @@ footer > a {
 
 .main-left .nav li .menu::before {
     position: absolute;
-    left: 2rem;
+    left: 2.4rem;
     padding-top: 3px;
     font-family: "advancedtomato" !important;
     font-style: normal;
@@ -824,7 +824,7 @@ footer > a {
     content: "\e005";
     color: #9400D3;
     position: absolute;
-    left: 2rem;
+    left: 2.4rem;
     padding-top: 3px;
     font-family: "advancedtomato" !important;
     font-style: normal;
@@ -848,10 +848,6 @@ footer > a {
     cursor: default;
 }
 
-.main > .main-left > .nav > .slide > .menu.active {
-    background: #333;
-}
-
 .main > .main-left > .nav > li:hover,
 .main > .main-left > .nav > .slide > .menu:hover {
     background: #333;
@@ -873,7 +869,7 @@ footer > a {
 
 .slide-menu li:before {
     content: "";
-    left: 34px;
+    left: 40px;
     top: -50%;
     bottom: 50%;
     position: absolute;
