@@ -34,14 +34,6 @@
 			"path": "mosdns/update"
 		}
 	},
-	"admin/services/mosdns/logs": {
-		"title": "Logs",
-		"order": 25,
-		"action": {
-			"type": "view",
-			"path": "mosdns/logs"
-		}
-	},
 	"admin/services/mosdns/panel": {
 		"title": "面板",
 		"order": 30,
