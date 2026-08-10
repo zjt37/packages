@@ -476,7 +476,6 @@ add china_ip_route 45.65.20.0/22
 add china_ip_route 45.82.239.0/24
 add china_ip_route 45.86.73.0/24
 add china_ip_route 45.89.104.0/24
-add china_ip_route 45.95.207.0/24
 add china_ip_route 45.112.232.0/22
 add china_ip_route 45.113.20.0/22
 add china_ip_route 45.113.24.0/22
