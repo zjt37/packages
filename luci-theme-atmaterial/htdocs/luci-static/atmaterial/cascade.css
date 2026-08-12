@@ -81,7 +81,10 @@ html, body {
     font-family: Roboto, 'Microsoft Yahei' !important;
     font-size: 10pt;
     line-height: 150%;
-    color: #76838f;
+}
+
+html {
+    zoom: 0.95;
 }
 
 body div {
@@ -592,10 +595,21 @@ table > tr:nth-of-type(odd),
     margin: 10px 0 0 0;
 }
 
-.cbi-modal .cbi-section,
 .cbi-section .cbi-section {
     padding: 0;
     box-shadow: none;
+}
+
+.modal.cbi-modal {
+    background-color: #e4eaec;
+}
+
+#modal_overlay {
+    background: #e4eaec;
+}
+
+.modal.cbi-modal .cbi-map > .cbi-section {
+    background-color: #FFF;
 }
 
 .darkMask {
@@ -1596,8 +1610,8 @@ footer #modemenu {
     left: -10000px;
     overflow-y: scroll;
     transition: opacity .125s ease-in;
-    opacity: 0;
-    background: #f2f2f2;
+opacity: 0;
+    background: #e4eaec;
     -webkit-overflow-scrolling: touch;
 }
 
@@ -1624,15 +1638,16 @@ footer #modemenu {
 }
 
 .modal.cbi-modal {
-    width: 100%;
+    width: auto;
     max-width: none;
     min-height: 0;
-    margin: 1rem auto;
-    padding: 1rem 1.5rem;
+    margin: 40px 40px 0 50px;
+    padding: 0;
     align-items: flex-start;
     align-content: flex-start;
     justify-content: flex-start;
-    border-radius: 0;
+    border: none;
+    border-radius: 4px !important;
     box-shadow: none;
 }
 
