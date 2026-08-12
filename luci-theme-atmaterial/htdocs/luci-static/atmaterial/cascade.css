@@ -273,7 +273,8 @@ header > .fill > .container > a[class="brand"]:after {
     font-size: 12px;
     font-family: Tahoma;
     font-weight: normal !important;
-    vertical-align: top;
+    position: relative;
+    top: -10px;
 }
 
 .showSide {
