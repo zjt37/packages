@@ -1,0 +1,13 @@
+{
+	"admin/system/n1update": {
+		"title": "系统更新",
+		"action": {
+			"type": "template",
+			"template": "n1update/update"
+		},
+		"depends": {
+			"acl": ["luci-app-n1update"],
+			"uci": { "n1update": true }
+		}
+	}
+}

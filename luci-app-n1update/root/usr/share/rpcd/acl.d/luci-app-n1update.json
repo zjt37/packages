@@ -1,0 +1,16 @@
+{
+	"luci-app-n1update": {
+		"read": {
+			"uci-n1update": ["n1update"],
+			"file": {
+				"/usr/bin/n1update": ["exec"]
+			}
+		},
+		"write": {
+			"uci-n1update": ["n1update"],
+			"file": {
+				"/usr/bin/n1update": ["exec"]
+			}
+		}
+	}
+}

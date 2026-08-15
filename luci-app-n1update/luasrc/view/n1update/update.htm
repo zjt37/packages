@@ -1,0 +1,115 @@
+<%
+local action = luci.http.formvalue("action")
+if action then
+    luci.http.prepare_content("text/plain")
+    if action == "check" then
+        luci.http.write(luci.sys.exec("/usr/bin/n1update check"))
+    elseif action == "start" then
+        local mode = luci.http.formvalue("mode") or "fresh"
+        luci.sys.exec("/usr/bin/n1update " .. mode .. " > /tmp/n1update.log 2>&1 &")
+        luci.http.write("更新已启动，请查看下方日志\n")
+    elseif action == "log" then
+        local progress = ""
+        local pf = io.open("/tmp/n1update_progress", "r")
+        if pf then
+            progress = pf:read("*a") or ""
+            pf:close()
+        end
+        local log = ""
+        local f = io.open("/tmp/n1update.log", "r")
+        if f then
+            log = f:read("*a") or ""
+            f:close()
+        end
+        luci.http.write(log)
+        if #progress > 0 then
+            luci.http.write(progress)
+        end
+    end
+    return
+end
+%>
+<%+header%>
+
+<h2><%:系统更新%></h2>
+
+<fieldset class="cbi-section">
+	<legend><%:在线更新%></legend>
+	<div style="padding: 10px;">
+		<p><%:从 GitHub 下载最新固件并自动刷入%></p>
+		<p><strong style="color: red;"><%:警告：更新过程中请勿断电！%></strong></p>
+		<br/>
+		<div class="cbi-value">
+			<label class="cbi-value-title"><%:安装模式%></label>
+			<div class="cbi-value-field">
+				<select id="install-mode">
+					<option value="fresh"><%:全新安装（不保留配置）%></option>
+					<option value="keep"><%:保留配置更新%></option>
+				</select>
+			</div>
+		</div>
+		<br/>
+		<input type="button" class="cbi-button cbi-button-apply" value="<%:检查更新%>" onclick="checkUpdate()" />
+		<input type="button" class="cbi-button cbi-button-reset" value="<%:开始更新%>" onclick="startUpdate()" />
+		<br/><br/>
+		<div id="update-log" style="display:none;">
+			<textarea id="log-content" rows="20" cols="80" readonly style="width:100%;font-family:monospace;font-size:12px;background:#1a1a1a;color:#0f0;"></textarea>
+		</div>
+	</div>
+</fieldset>
+
+<script type="text/javascript">
+var actionUrl = '<%=luci.dispatcher.build_url("admin/system/n1update")%>';
+var logTimer = null;
+
+function checkUpdate() {
+	var log = document.getElementById('update-log');
+	var content = document.getElementById('log-content');
+	log.style.display = 'block';
+	content.value = '<%:正在检查更新...%>\n';
+
+	fetch(actionUrl + '?action=check')
+		.then(function(r) { return r.text(); })
+		.then(function(data) { content.value += data || '<%:无返回数据%>'; })
+		.catch(function(e) { content.value += 'Error: ' + e; });
+}
+
+function startUpdate() {
+	var mode = document.getElementById('install-mode').value;
+	var modeText = mode === 'keep' ? '<%:保留配置%>' : '<%:全新安装%>';
+
+	if (!confirm('<%:确定要开始更新吗？%>\n<%:安装模式%>: ' + modeText + '\n<%:更新过程中请勿断电！%>')) return;
+
+	var log = document.getElementById('update-log');
+	var content = document.getElementById('log-content');
+	log.style.display = 'block';
+	content.value = '<%:正在启动更新...%>\n';
+
+	fetch(actionUrl + '?action=start&mode=' + mode)
+		.then(function(r) { return r.text(); })
+		.then(function(data) {
+			content.value += data;
+			pollLog();
+		})
+		.catch(function(e) { content.value += 'Error: ' + e; });
+}
+
+function pollLog() {
+	if (logTimer) clearInterval(logTimer);
+	logTimer = setInterval(function() {
+		fetch(actionUrl + '?action=log')
+			.then(function(r) { return r.text(); })
+			.then(function(data) {
+				var content = document.getElementById('log-content');
+				content.value = data;
+				content.scrollTop = content.scrollHeight;
+				if (data.indexOf('错误') !== -1 || data.indexOf('正在重启系统') !== -1) {
+					clearInterval(logTimer);
+					logTimer = null;
+				}
+			});
+	}, 3000);
+}
+</script>
+
+<%+footer%>

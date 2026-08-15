@@ -1,0 +1,13 @@
+#!/bin/sh
+
+[ -f /etc/config/n1update ] || touch /etc/config/n1update
+
+uci -q batch <<EOF
+set n1update.n1update=n1update
+set n1update.n1update.enabled='1'
+set n1update.n1update.install_mode='fresh'
+set n1update.n1update.repo='zjt37/zheng'
+commit n1update
+EOF
+
+exit 0
