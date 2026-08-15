@@ -1,0 +1,19 @@
+#!/bin/sh
+
+# 第一次开机综合脚本：设置网关、DNS、DHCP、dnsmasq
+
+uci batch <<-EOF
+	set network.lan.gateway='192.168.1.1'
+	set network.lan.dns='127.0.0.1'
+	commit network
+	delete dhcp.lan.ignore
+	set dhcp.lan.dhcpv4='server'
+	set dhcp.lan.dhcpv6='disabled'
+	set dhcp.lan.ra='disabled'
+	set dhcp.lan.ra_slaac='0'
+	set dhcp.@dnsmasq[0].noresolv='1'
+	set dhcp.@dnsmasq[0].port='5353'
+	commit dhcp
+EOF
+
+exit 0
