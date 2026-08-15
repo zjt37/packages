@@ -2,7 +2,7 @@
 
 # 第一次开机综合脚本：设置网关、DNS、DHCP、dnsmasq
 
-uci batch <<-EOF
+uci -q batch <<-EOF
 	set network.lan.gateway='192.168.1.1'
 	set network.lan.dns='127.0.0.1'
 	commit network
