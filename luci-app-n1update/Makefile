@@ -11,7 +11,7 @@ define Package/luci-app-n1update
   CATEGORY:=LuCI
   SUBMENU:=3. Applications
   TITLE:=N1 System Update
-  DEPENDS:=+curl +jq
+  DEPENDS:=+curl +jq +btrfs-progs
   PKGARCH:=all
 endef
 
