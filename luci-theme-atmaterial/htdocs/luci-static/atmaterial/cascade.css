@@ -2775,3 +2775,15 @@ pre {
     text-align: center !important;
 }
 
+
+/* ===== brightness tweak test 1 (filter) ===== */
+html { filter: brightness(85%) !important; }
+
+/* ===== sidebar text brighter ===== */
+.main > .main-left > .nav > li a,
+.main > .main-left > .nav > .slide > .slide-menu > li > a {
+    color: #e8e8e8 !important;
+}
+.main-left .nav li .menu::before {
+    filter: brightness(1.3);
+}
