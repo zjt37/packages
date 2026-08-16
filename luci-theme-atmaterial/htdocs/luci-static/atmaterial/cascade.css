@@ -2797,3 +2797,10 @@ h1, h2, h3, h4, h5, h6 { color: #000; }
 .cbi-tabmenu > li > a, .tabs > li > a, .mode-tabs .mode-tab { color: #3c3c3c !important; font-weight: 500 !important; }
 .cbi-tabmenu > li.cbi-tab > a, .mode-tabs .mode-tab.active { color: #000 !important; font-weight: 700 !important; }
 
+/* ===== dropdown text brighter ===== */
+.cbi-dropdown > ul > li, .cbi-dropdown > ul.dropdown > li { color: #3c3c3c !important; font-weight: 500 !important; }
+select option { color: #3c3c3c; font-weight: 500; }
+
+/* ===== dynlist item text brighter ===== */
+.cbi-dynlist > .item { color: #3c3c3c !important; font-weight: 500 !important; }
+
