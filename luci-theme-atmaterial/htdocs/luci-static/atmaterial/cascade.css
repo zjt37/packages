@@ -2787,3 +2787,13 @@ html { filter: brightness(85%) !important; }
 .main-left .nav li .menu::before {
     filter: brightness(1.3);
 }
+/* ===== content text brighter ===== */
+body { color: #000; }
+a { color: #b0bcc9; }
+select, input, textarea, .cbi-input-textarea, .cbi-dropdown, #syslog { color: #b0bcc9; }
+h1, h2, h3, h4, h5, h6 { color: #000; }
+
+/* ===== tabs brighter ===== */
+.cbi-tabmenu > li > a, .tabs > li > a, .mode-tabs .mode-tab { color: #3c3c3c !important; font-weight: 500 !important; }
+.cbi-tabmenu > li.cbi-tab > a, .mode-tabs .mode-tab.active { color: #000 !important; font-weight: 700 !important; }
+
