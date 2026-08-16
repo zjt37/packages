@@ -2804,3 +2804,10 @@ select option { color: #3c3c3c; font-weight: 500; }
 /* ===== dynlist item text brighter ===== */
 .cbi-dynlist > .item { color: #3c3c3c !important; font-weight: 500 !important; }
 
+
+/* ===== save&apply button force white text ===== */
+.cbi-button-apply, .cbi-dropdown.cbi-button-apply,
+.cbi-dropdown.cbi-button-apply > ul, .cbi-dropdown.cbi-button-apply > ul > li {
+    color: #fff !important;
+}
+.cbi-dropdown.cbi-button-apply > ul > li { font-weight: normal !important; }
