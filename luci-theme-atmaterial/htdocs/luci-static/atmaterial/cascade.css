@@ -1,4 +1,4 @@
-/**
+﻿/**
  *  AtMaterial is a clean HTML5 theme for LuCI. It is based on luci-theme-bootstrap and MUI
  *
  *  luci-theme-atmaterial
@@ -2790,7 +2790,7 @@ html { filter: brightness(85%) !important; }
 /* ===== content text brighter ===== */
 body { color: #000; }
 a { color: #b0bcc9; }
-select, input, textarea, .cbi-input-textarea, .cbi-dropdown, #syslog { color: #b0bcc9; }
+select, input, textarea, .cbi-input-textarea, .cbi-dropdown, #syslog { color: #3c3c3c; font-weight: 500; }
 h1, h2, h3, h4, h5, h6 { color: #000; }
 
 /* ===== tabs brighter ===== */
