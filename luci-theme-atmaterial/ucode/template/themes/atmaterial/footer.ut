@@ -28,5 +28,6 @@
 	</div>
 
 	<script>L.require('menu-atmaterial')</script>
+	<script src="{{ media }}/brightness.js"></script>
 </body>
 </html>
