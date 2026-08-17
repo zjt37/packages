@@ -2777,7 +2777,7 @@ pre {
 
 
 /* ===== brightness tweak test 1 (filter) ===== */
-html { filter: brightness(85%) !important; }
+html { filter: brightness(95%) !important; }
 
 /* ===== sidebar text brighter ===== */
 .main > .main-left > .nav > li a,
