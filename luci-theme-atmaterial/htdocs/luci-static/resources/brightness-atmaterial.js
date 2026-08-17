@@ -1,6 +1,7 @@
 'use strict';
+'require baseclass';
 
-return {
+return baseclass.extend({
 	init: function () {
 		var KEY = 'atmaterial_brightness';
 		var MIN = 50, MAX = 130, DEF = 100;
@@ -87,4 +88,4 @@ return {
 		document.body.appendChild(btn);
 		document.body.appendChild(panel);
 	}
-};
+});
