@@ -1,21 +1,21 @@
-(function () {
-	'use strict';
+'use strict';
 
-	var KEY = 'atmaterial_brightness';
-	var MIN = 50, MAX = 130, DEF = 100;
+return {
+	init: function () {
+		var KEY = 'atmaterial_brightness';
+		var MIN = 50, MAX = 130, DEF = 100;
 
-	function getVal() {
-		var v = parseInt(localStorage.getItem(KEY), 10);
-		return (isNaN(v) || v < MIN || v > MAX) ? DEF : v;
-	}
+		function getVal() {
+			var v = parseInt(localStorage.getItem(KEY), 10);
+			return (isNaN(v) || v < MIN || v > MAX) ? DEF : v;
+		}
 
-	function apply(v) {
-		document.documentElement.style.filter = 'brightness(' + v + '%)';
-	}
+		function apply(v) {
+			document.documentElement.style.filter = 'brightness(' + v + '%)';
+		}
 
-	var css = '.atmat-brightness-btn{position:fixed;right:1rem;bottom:1rem;z-index:9999;width:2.6rem;height:2.6rem;border-radius:50%;border:none;background:#F47932;color:#fff;font-size:1.3rem;line-height:1;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center}.atmat-brightness-panel{position:fixed;right:1rem;bottom:4rem;z-index:9999;width:15rem;background:#fff;border:1px solid #e4eaec;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.2);padding:.8rem 1rem;display:none;flex-direction:column;gap:.4rem}.atmat-brightness-panel.open{display:flex}.atmat-brightness-panel .title{font-size:.8rem;font-weight:600;color:#333;display:flex;justify-content:space-between;align-items:center}.atmat-brightness-panel input[type=range]{width:100%;accent-color:#F47932}.atmat-brightness-panel .row{display:flex;justify-content:space-between;align-items:center;font-size:.75rem;color:#666}.atmat-brightness-panel .reset{border:1px solid #e4eaec;border-radius:4px;background:#f9f9f9;color:#333;cursor:pointer;padding:.15rem .6rem}.atmat-brightness-panel .reset:hover{background:#e4eaec}';
+		var css = '.atmat-brightness-btn{position:fixed;right:1rem;bottom:1rem;z-index:9999;width:2.6rem;height:2.6rem;border-radius:50%;border:none;background:#F47932;color:#fff;font-size:1.3rem;line-height:1;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center}.atmat-brightness-panel{position:fixed;right:1rem;bottom:4rem;z-index:9999;width:15rem;background:#fff;border:1px solid #e4eaec;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.2);padding:.8rem 1rem;display:none;flex-direction:column;gap:.4rem}.atmat-brightness-panel.open{display:flex}.atmat-brightness-panel .title{font-size:.8rem;font-weight:600;color:#333;display:flex;justify-content:space-between;align-items:center}.atmat-brightness-panel input[type=range]{width:100%;accent-color:#F47932}.atmat-brightness-panel .row{display:flex;justify-content:space-between;align-items:center;font-size:.75rem;color:#666}.atmat-brightness-panel .reset{border:1px solid #e4eaec;border-radius:4px;background:#f9f9f9;color:#333;cursor:pointer;padding:.15rem .6rem}.atmat-brightness-panel .reset:hover{background:#e4eaec}';
 
-	function init() {
 		var v = getVal();
 		apply(v);
 
@@ -87,9 +87,4 @@
 		document.body.appendChild(btn);
 		document.body.appendChild(panel);
 	}
-
-	if (document.readyState !== 'loading')
-		init();
-	else
-		document.addEventListener('DOMContentLoaded', init);
-})();
+};

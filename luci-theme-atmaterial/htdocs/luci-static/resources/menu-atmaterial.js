@@ -1,4 +1,4 @@
-﻿'use strict';'require baseclass';'require ui';return baseclass.extend({__init__(){ui.menu.load().then((tree)=>this.render(tree));},render(tree){let node=tree;let url='';this.renderModeMenu(node);if(L.env.dispatchpath.length>=3){for(var i=0;i<3&&node;i++){node=node.children[L.env.dispatchpath[i]];url=url+(url?'/':'')+L.env.dispatchpath[i];}
+﻿'use strict';'require baseclass';'require ui';'require brightness-atmaterial';return baseclass.extend({__init__(){require('brightness-atmaterial').init();ui.menu.load().then((tree)=>this.render(tree));},render(tree){let node=tree;let url='';this.renderModeMenu(node);if(L.env.dispatchpath.length>=3){for(var i=0;i<3&&node;i++){node=node.children[L.env.dispatchpath[i]];url=url+(url?'/':'')+L.env.dispatchpath[i];}
 if(node)
 this.renderTabMenu(node,url);}
 document.querySelector('.showSide').addEventListener('click',ui.createHandlerFn(this,'handleSidebarToggle'));document.querySelector('.darkMask').addEventListener('click',ui.createHandlerFn(this,'handleSidebarToggle'));document.querySelector(".main > .loading").style.opacity='0';document.querySelector(".main > .loading").style.visibility='hidden';if(window.innerWidth<=1152)
