@@ -389,12 +389,12 @@ function socks_status()
 	local index = http.formvalue("index")
 	local id = http.formvalue("id")
 	e.index = index
-	e.socks_status = luci.sys.call(string.format("/bin/busybox top -bn1 | grep -v -E 'grep|acl/|acl_' | grep '%s/bin/' | grep '%s' > /dev/null", appname, id)) == 0
+	e.socks_status = luci.sys.call(string.format("/bin/busybox top -bn1 | grep -v -E 'grep|acl/|acl_' | grep '%s/bin/' | grep '/%s' > /dev/null", appname, id)) == 0
 	local use_http = uci_get(id, "http_port") or 0
 	e.use_http = 0
 	if tonumber(use_http) > 0 then
 		e.use_http = 1
-		e.http_status = luci.sys.call(string.format("/bin/busybox top -bn1 | grep -v -E 'grep|acl/|acl_' | grep '%s/bin/' | grep '%s' | grep -E '\\+http|_http' > /dev/null", appname, id)) == 0
+		e.http_status = luci.sys.call(string.format("/bin/busybox top -bn1 | grep -v -E 'grep|acl/|acl_' | grep '%s/bin/' | grep '/%s' | grep -E '\\+http|_http' > /dev/null", appname, id)) == 0
 	end
 	http_write_json(e)
 end
@@ -584,11 +584,16 @@ end
 function delete_select_nodes()
 	local ids = http.formvalue("ids")
 	local redirect = http.formvalue("redirect")
+	local ids_t = {}
 	string.gsub(ids, '[^' .. "," .. ']+', function(w)
+		ids_t[#ids_t + 1] = w
+		if (uci_get("@global[0]", "tcp_node") or "") == w then
+			uci_del('@global[0]', "tcp_node")
+		end
+		if (uci_get("@global[0]", "udp_node") or "") == w then
+			uci_del('@global[0]', "udp_node")
+		end
 		uci_foreach("socks", function(t)
-			if t["node"] == w then
-				uci_del(t[".name"])
-			end
 			local changed = false
 			local auto_switch_node_list = uci_get(t[".name"], "autoswitch_backup_node") or {}
 			for i = #auto_switch_node_list, 1, -1 do
@@ -600,13 +605,15 @@ function delete_select_nodes()
 			if changed then
 				uci_set(t[".name"], "autoswitch_backup_node", auto_switch_node_list)
 			end
+			if t["node"] == w then
+				local new_node = api.get_random_normal_node(ids_t)
+				if new_node then
+					uci_set(t[".name"], "node", new_node[".name"])
+				else
+					uci_set(t[".name"], "enabled", "0")
+				end
+			end
 		end)
-		if (uci_get("@global[0]", "tcp_node") or "") == w then
-			uci_del('@global[0]', "tcp_node")
-		end
-		if (uci_get("@global[0]", "udp_node") or "") == w then
-			uci_del('@global[0]', "udp_node")
-		end
 		uci_foreach("haproxy_config", function(t)
 			if t["lbss"] == w then
 				uci_del(t[".name"])
