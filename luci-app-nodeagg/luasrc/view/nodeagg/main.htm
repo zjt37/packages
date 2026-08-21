@@ -2,12 +2,59 @@
 
 <h2><%:节点聚合与订阅转换%></h2>
 
-<fieldset class="cbi-section">
-	<legend><%:功能说明%></legend>
-	<div style="padding: 10px;">
-		<p><%:节点聚合 + 订阅转换工具，支持多种协议转换和节点管理。%></p>
-		<p><%:功能开发中，敬请期待...%></p>
-	</div>
-</fieldset>
+<style>
+.tab-bar {
+	display: flex;
+	border-bottom: 2px solid #37a;
+	margin-bottom: 15px;
+}
+.tab-bar .tab-item {
+	padding: 8px 20px;
+	cursor: pointer;
+	border-bottom: 2px solid transparent;
+	margin-bottom: -2px;
+	color: #555;
+	font-weight: bold;
+}
+.tab-bar .tab-item:hover {
+	color: #37a;
+}
+.tab-bar .tab-item.active {
+	color: #37a;
+	border-bottom-color: #37a;
+}
+.tab-content {
+	display: none;
+}
+.tab-content.active {
+	display: block;
+}
+</style>
+
+<div class="tab-bar">
+	<div class="tab-item active" onclick="switchTab('node-agg')">节点聚合</div>
+</div>
+
+<div id="tab-node-agg" class="tab-content active">
+	<fieldset class="cbi-section">
+		<legend><%:节点聚合%></legend>
+		<div style="padding: 10px;">
+			<p>功能开发中，敬请期待...</p>
+		</div>
+	</fieldset>
+</div>
+
+<script type="text/javascript">
+function switchTab(name) {
+	document.querySelectorAll('.tab-item').forEach(function(el) {
+		el.classList.remove('active');
+	});
+	document.querySelectorAll('.tab-content').forEach(function(el) {
+		el.classList.remove('active');
+	});
+	event.target.classList.add('active');
+	document.getElementById('tab-' + name).classList.add('active');
+}
+</script>
 
 <%+footer%>
