@@ -23,22 +23,18 @@ o = s:option(DynamicList, "filter_keep_list", translate("保留列表"))
 o = s:option(DummyValue, "_stop", translate("删除所有订阅节点"))
 o.rawhtml = true
 o.cfgvalue = function(self, section)
-	return string.format(
-		[[<input type="button" class="btn cbi-button cbi-button-remove" onclick="confirmDeleteAll()" value="%s" />]],
-		translate("删除所有订阅节点"))
+	return '<input type="button" class="btn cbi-button cbi-button-remove" onclick="confirmDeleteAll()" value="' .. translate("删除所有订阅节点") .. '" />'
 end
 
 ---- 手动订阅所有
 o = s:option(DummyValue, "_update", translate("手动订阅所有"))
 o.rawhtml = true
 o.cfgvalue = function(self, section)
-	return string.format(
-		[[<input type="button" class="btn cbi-button cbi-button-apply" onclick="ManualSubscribeAll()" value="%s" />]],
-		translate("手动订阅所有"))
+	return '<input type="button" class="btn cbi-button cbi-button-apply" onclick="ManualSubscribeAll()" value="' .. translate("手动订阅所有") .. '" />'
 end
 
 -- [[ 订阅列表 ]]--
-s = m:section(TypedSection, "subscribe_list", "", "<font color='red'>" .. translate("添加新订阅后请保存并应用，再手动订阅。如果只修改了订阅地址，可以手动订阅，系统会自动保存。") .. "</font>")
+s = m:section(TypedSection, "subscribe_list", "", '<font color="red">' .. translate("添加新订阅后请保存并应用，再手动订阅。如果只修改了订阅地址，可以手动订阅，系统会自动保存。") .. '</font>')
 s.addremove = true
 s.anonymous = true
 s.sortable = true
@@ -58,7 +54,7 @@ o.cfgvalue = function(self, section)
 			num = num + 1
 		end
 	end)
-	return string.format("%s: %d", translate("节点数量"), num)
+	return translate("节点数量") .. ": " .. num
 end
 
 o = s:option(Value, "url", translate("订阅地址"))
@@ -69,52 +65,13 @@ o = s:option(DummyValue, "_remove", translate("删除订阅节点"))
 o.rawhtml = true
 o.cfgvalue = function(self, section)
 	local remark = m:get(section, "remark") or ""
-	return string.format(
-		[[<input type="button" class="btn cbi-button cbi-button-remove" onclick="confirmDeleteNode('%s')" value="%s" />]],
-		remark, translate("删除订阅节点"))
+	return '<input type="button" class="btn cbi-button cbi-button-remove" onclick="confirmDeleteNode(\'' .. remark .. '\')" value="' .. translate("删除订阅节点") .. '" />'
 end
 
-o = s:option(DummyValue, "_update", translate("手动订阅"))
+o = s:option(DummyValue, "_update2", translate("手动订阅"))
 o.rawhtml = true
 o.cfgvalue = function(self, section)
-	return string.format(
-		[[<input type="button" class="btn cbi-button cbi-button-apply" onclick="ManualSubscribe('%s')" value="%s" />]],
-		section, translate("手动订阅"))
-end
-
--- JS脚本
-s2 = m:section(TypedSection, "nodeagg")
-s2.anonymous = true
-s2.addremove = false
-o = s2:option(DummyValue, "_js", " ")
-o.rawhtml = true
-o.cfgvalue = function(self, section)
-	return [[<script type="text/javascript">
-//<![CDATA[
-function confirmDeleteNode(remark) {
-	if (!confirm("]] .. translate("删除订阅节点") .. [[: " + remark + " ?"))
-		return false;
-	return true;
-}
-function confirmDeleteAll() {
-	if (!confirm("]] .. translate("确定要删除所有订阅节点吗？") .. [["))
-		return false;
-	return true;
-}
-function ManualSubscribe(sectionId) {
-	var urlInput = document.querySelector("input[name='cbid.nodeagg." + sectionId + ".url']");
-	var currentUrl = urlInput ? urlInput.value.trim() : "";
-	if (!currentUrl) {
-		alert("]] .. translate("订阅地址不能为空") .. [[");
-		return;
-	}
-	alert("]] .. translate("手动订阅") .. [[: " + currentUrl);
-}
-function ManualSubscribeAll() {
-	alert("]] .. translate("手动订阅所有") .. [[");
-}
-//]]>
-</script>]]
+	return '<input type="button" class="btn cbi-button cbi-button-apply" onclick="ManualSubscribe(\'' .. section .. '\')" value="' .. translate("手动订阅") .. '" />'
 end
 
 return m
