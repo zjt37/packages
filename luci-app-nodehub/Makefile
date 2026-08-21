@@ -152,7 +152,6 @@ endef
 
 define Package/$(PKG_NAME)/conffiles
 /etc/config/nodehub
-/etc/config/nodehub_server
 /usr/share/nodehub/rules/direct_host
 /usr/share/nodehub/rules/direct_ip
 /usr/share/nodehub/rules/proxy_host

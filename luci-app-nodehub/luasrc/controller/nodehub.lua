@@ -52,14 +52,7 @@ function index()
 	entry({"admin", "services", appname, "acl"}, cbi(appname .. "/client/acl"), _("Access control"), 98).leaf = true
 	entry({"admin", "services", appname, "acl_config"}, cbi(appname .. "/client/acl_config")).leaf = true
 
-	--[[ Server ]]
-	entry({"admin", "services", appname, "server"}, cbi(appname .. "/server/index"), _("Server-Side"), 99).leaf = true
-	entry({"admin", "services", appname, "server_config"}, cbi(appname .. "/server/server_config")).leaf = true
-	entry({"admin", "services", appname, "server_user_config"}, cbi(appname .. "/server/user_config")).leaf = true
-
 	--[[ API ]]
-	entry({"admin", "services", appname, "server_update_config"}, call("server_update_config")).leaf = true
-	entry({"admin", "services", appname, "server_status"}, call("server_status")).leaf = true
 	entry({"admin", "services", appname, "link_add_node"}, call("link_add_node")).leaf = true
 	entry({"admin", "services", appname, "socks_autoswitch_add_node"}, call("socks_autoswitch_add_node")).leaf = true
 	entry({"admin", "services", appname, "socks_autoswitch_remove_node"}, call("socks_autoswitch_remove_node")).leaf = true
@@ -746,7 +739,6 @@ end
 
 local backup_files = {
     "/etc/config/nodehub",
-    "/etc/config/nodehub_server",
     "/usr/share/nodehub/rules/block_host",
     "/usr/share/nodehub/rules/block_ip",
     "/usr/share/nodehub/rules/direct_host",
@@ -811,7 +803,6 @@ function restore_backup()
 				api.log(" * NodeHub 配置还原成功…")
 				api.log(" * 重启 NodeHub 服务中…\n")
 				luci.sys.call('/etc/init.d/nodehub restart > /dev/null 2>&1 &')
-				luci.sys.call('/etc/init.d/nodehub_server restart > /dev/null 2>&1 &')
 				result = { status = "success", message = "Upload completed", path = file_path }
 			else
 				api.log(" * NodeHub 配置文件解压失败，请重试！")
