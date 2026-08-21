@@ -13,6 +13,7 @@ o.rmempty = false
 o = s:option(Value, "agg_url", translate("聚合地址"))
 o.readonly = true
 o.placeholder = "http://192.168.2.30/nodeagg.txt"
+o.size = 50
 
 o = s:option(Button, "_copy")
 o.title = " "
