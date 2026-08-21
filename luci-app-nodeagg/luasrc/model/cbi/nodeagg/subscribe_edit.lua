@@ -12,7 +12,7 @@ function m.on_before_save(self)
 	self:del(arg[1], "md5")
 end
 
--- m:appendTemplate("/cbi/nodes_listvalue_com")
+m:appendTemplate("/cbi/nodes_listvalue_com")
 
 local has_ss_rust = api.is_finded("sslocal")
 local has_singbox = api.finded_com("sing-box")
