@@ -10,7 +10,7 @@
 		}
 	},
 	"admin/services/nodeagg/settings": {
-		"title": "基本设置",
+		"title": "节点聚合",
 		"action": {
 			"type": "cbi",
 			"model": "nodeagg/settings"
