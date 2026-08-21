@@ -1,16 +1,16 @@
 local api = require "luci.nodeagg.api"
--- api.set_default_cbi()
 
-m = Map()
+local has_ss_rust = api.is_finded("sslocal")
+local has_singbox = api.finded_com("sing-box")
+local has_xray = api.finded_com("xray")
+local has_hysteria2 = api.finded_com("hysteria")
 
-function m.on_before_save(self)
-	self:foreach("subscribe_list", function(e)
-		self:del(e[".name"], "md5")
-	end)
-end
+m = Map("nodeagg")
 
 -- [[ 订阅设置 ]]--
-s = m:section(NamedSection, "@global_subscribe[0]", "global_subscribe")
+s = m:section(TypedSection, "nodeagg")
+s.anonymous = true
+s.addremove = false
 
 o = s:option(ListValue, "filter_keyword_mode", translate("过滤关键词模式"))
 o:value("0", translate("关闭"))
@@ -23,41 +23,36 @@ o = s:option(DynamicList, "filter_discard_list", translate("丢弃列表"))
 
 o = s:option(DynamicList, "filter_keep_list", translate("保留列表"))
 
-local has_ss_rust = api.is_finded("sslocal")
-local has_singbox = api.finded_com("sing-box")
-local has_xray = api.finded_com("xray")
-local has_hysteria2 = api.finded_com("hysteria")
-
-if has_ss_rust or has_singbox or has_xray then
-	o = s:option(ListValue, "ss_type", translatef("%s 节点使用类型", "Shadowsocks"))
+if has_singbox or has_xray then
+	o = s:option(ListValue, "ss_type", translate("%s 节点使用类型", "Shadowsocks"))
 	o:value("", translate("自动"))
 	if has_singbox then o:value("sing-box", "sing-box") end
 	if has_xray then o:value("xray", "xray") end
 end
 
-if has_ss_rust or has_singbox or has_xray then
-	o = s:option(ListValue, "trojan_type", translatef("%s 节点使用类型", "Trojan"))
+if has_singbox or has_xray then
+	o = s:option(ListValue, "trojan_type", translate("%s 节点使用类型", "Trojan"))
 	o:value("", translate("自动"))
 	if has_singbox then o:value("sing-box", "sing-box") end
 	if has_xray then o:value("xray", "xray") end
 end
 
-if has_ss_rust or has_singbox or has_xray then
-	o = s:option(ListValue, "vmess_type", translatef("%s 节点使用类型", "VMess"))
+if has_singbox or has_xray then
+	o = s:option(ListValue, "vmess_type", translate("%s 节点使用类型", "VMess"))
 	o:value("", translate("自动"))
 	if has_singbox then o:value("sing-box", "sing-box") end
 	if has_xray then o:value("xray", "xray") end
 end
 
-if has_ss_rust or has_singbox or has_xray then
-	o = s:option(ListValue, "vless_type", translatef("%s 节点使用类型", "VLESS"))
+if has_singbox or has_xray then
+	o = s:option(ListValue, "vless_type", translate("%s 节点使用类型", "VLESS"))
 	o:value("", translate("自动"))
 	if has_singbox then o:value("sing-box", "sing-box") end
 	if has_xray then o:value("xray", "xray") end
 end
 
 if has_singbox or has_xray or has_hysteria2 then
-	o = s:option(ListValue, "hysteria2_type", translatef("%s 节点使用类型", "Hysteria2"))
+	o = s:option(ListValue, "hysteria2_type", translate("%s 节点使用类型", "Hysteria2"))
 	o:value("", translate("自动"))
 	if has_singbox then o:value("sing-box", "sing-box") end
 	if has_xray then o:value("xray", "xray") end
@@ -67,19 +62,15 @@ end
 ---- 删除所有订阅节点
 o = s:option(DummyValue, "_stop", translate("删除所有订阅节点"))
 o.rawhtml = true
-function o.cfgvalue(self, section)
-	return string.format(
-		[[<input type="button" class="btn cbi-button cbi-button-remove" onclick="return confirmDeleteAll()" value="%s" />]],
-		translate("删除所有订阅节点"))
+o.cfgvalue = function(self, section)
+	return '<input type="button" class="btn cbi-button cbi-button-remove" onclick="confirmDeleteAll()" value="' .. translate("删除所有订阅节点") .. '" />'
 end
 
 ---- 手动订阅所有
 o = s:option(DummyValue, "_update", translate("手动订阅所有"))
 o.rawhtml = true
-function o.cfgvalue(self, section)
-	return string.format(
-		[[<input type="button" class="btn cbi-button cbi-button-apply" onclick="ManualSubscribeAll()" value="%s" />]],
-		translate("手动订阅所有"))
+o.cfgvalue = function(self, section)
+	return '<input type="button" class="btn cbi-button cbi-button-apply" onclick="ManualSubscribeAll()" value="' .. translate("手动订阅所有") .. '" />'
 end
 
 -- [[ 订阅列表 ]]--
@@ -92,8 +83,6 @@ s.extedit = luci.dispatcher.build_url("admin", "services", "nodeagg", "subscribe
 function s.create(e, t)
 	local uid = "sub_" .. api.gen_random_char(5)
 	TypedSection.create(e, uid)
-	m:set(uid, "hysteria_up_mbps", "100")
-	m:set(uid, "hysteria_down_mbps", "100")
 	luci.http.redirect(e.extedit:format(uid))
 end
 
@@ -103,10 +92,8 @@ o.rmempty = false
 
 o = s:option(DummyValue, "_node_count", translate("订阅信息"))
 o.rawhtml = true
-function o.cfgvalue(self, section)
-	local remark = m:get(section, "remark") or ""
-	local num = 0
-	return string.format("%s: %d", translate("节点数量"), num)
+o.cfgvalue = function(self, section)
+	return translate("节点数量") .. ": 0"
 end
 
 o = s:option(Value, "url", translate("订阅地址"))
@@ -115,19 +102,15 @@ o.rmempty = false
 
 o = s:option(DummyValue, "_remove", translate("删除订阅节点"))
 o.rawhtml = true
-function o.cfgvalue(self, section)
+o.cfgvalue = function(self, section)
 	local remark = m:get(section, "remark") or ""
-	return string.format(
-		[[<input type="button" class="btn cbi-button cbi-button-remove" onclick="return confirmDeleteNode('%s')" value="%s" />]],
-		remark, translate("删除订阅节点"))
+	return '<input type="button" class="btn cbi-button cbi-button-remove" onclick="confirmDeleteNode(\'' .. remark .. '\')" value="' .. translate("删除订阅节点") .. '" />'
 end
 
 o = s:option(DummyValue, "_update2", translate("手动订阅"))
 o.rawhtml = true
-function o.cfgvalue(self, section)
-	return string.format(
-		[[<input type="button" class="btn cbi-button cbi-button-apply" onclick="ManualSubscribe('%s')" value="%s" />]],
-		section, translate("手动订阅"))
+o.cfgvalue = function(self, section)
+	return '<input type="button" class="btn cbi-button cbi-button-apply" onclick="ManualSubscribe(\'' .. section .. '\')" value="' .. translate("手动订阅") .. '" />'
 end
 
 s2 = m:section(TypedSection, "nodeagg")
@@ -135,7 +118,7 @@ s2.anonymous = true
 s2.addremove = false
 o = s2:option(DummyValue, "_js", " ")
 o.rawhtml = true
-function o.cfgvalue(self, section)
+o.cfgvalue = function(self, section)
 	return '<script type="text/javascript">'
 		.. 'function confirmDeleteNode(remark){if(!confirm("' .. translate("删除订阅节点") .. ': "+remark+" ?"))return false;return true;}'
 		.. 'function confirmDeleteAll(){if(!confirm("' .. translate("确定要删除所有订阅节点吗？") .. '"))return false;return true;}'
