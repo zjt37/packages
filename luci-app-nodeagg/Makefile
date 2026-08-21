@@ -11,7 +11,7 @@ define Package/luci-app-nodeagg
   CATEGORY:=LuCI
   SUBMENU:=3. Applications
   TITLE:=NodeAgg - Subscription Aggregator
-  DEPENDS:=+curl +jq +sing-box +xray-core +hysteria
+  DEPENDS:=+curl +jq +python3
   PKGARCH:=all
 endef
 
