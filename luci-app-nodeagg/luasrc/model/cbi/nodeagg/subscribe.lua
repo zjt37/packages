@@ -1,7 +1,7 @@
 local m, s, o
 
-m = Map("nodeagg", translate("基本设置"),
-	translate("节点聚合与订阅转换的基本配置"))
+m = Map("nodeagg", translate("节点订阅"),
+	translate("订阅链接管理"))
 
 s = m:section(TypedSection, "nodeagg")
 s.anonymous = true

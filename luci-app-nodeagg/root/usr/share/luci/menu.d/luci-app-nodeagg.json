@@ -2,12 +2,51 @@
 	"admin/services/nodeagg": {
 		"title": "节点聚合",
 		"action": {
-			"type": "template",
-			"template": "nodeagg/main"
+			"type": "alias",
+			"path": "admin/services/nodeagg/settings"
 		},
 		"depends": {
-			"acl": ["luci-app-nodeagg"],
-			"uci": { "nodeagg": true }
+			"acl": ["luci-app-nodeagg"]
+		}
+	},
+	"admin/services/nodeagg/settings": {
+		"title": "基本设置",
+		"action": {
+			"type": "cbi",
+			"model": "nodeagg/settings"
+		},
+		"depends": {
+			"acl": ["luci-app-nodeagg"]
+		}
+	},
+	"admin/services/nodeagg/node_list": {
+		"title": "节点列表",
+		"action": {
+			"type": "cbi",
+			"model": "nodeagg/node_list"
+		},
+		"depends": {
+			"acl": ["luci-app-nodeagg"]
+		}
+	},
+	"admin/services/nodeagg/subscribe": {
+		"title": "节点订阅",
+		"action": {
+			"type": "cbi",
+			"model": "nodeagg/subscribe"
+		},
+		"depends": {
+			"acl": ["luci-app-nodeagg"]
+		}
+	},
+	"admin/services/nodeagg/log": {
+		"title": "运行日志",
+		"action": {
+			"type": "template",
+			"template": "nodeagg/log"
+		},
+		"depends": {
+			"acl": ["luci-app-nodeagg"]
 		}
 	}
 }
