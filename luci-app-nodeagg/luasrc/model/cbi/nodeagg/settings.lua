@@ -10,11 +10,14 @@ o = s:option(Flag, "enabled", translate("启用"))
 o.default = 0
 o.rmempty = false
 
-o = s:option(DummyValue, "agg_url_row", " ")
+o = s:option(Value, "agg_url", translate("聚合地址"))
+o.readonly = true
+o.placeholder = "http://192.168.2.30/nodeagg.txt"
+
+o = s:option(DummyValue, "_script", " ")
 o.rawhtml = true
 o.cfgvalue = function(self, section)
-	local url = m.uci:get("nodeagg", section, "agg_url") or "http://192.168.2.30/nodeagg.txt"
-	return '<div class="cbi-value" style="display:flex;align-items:center;"><label class="cbi-value-title" style="min-width:120px;">' .. translate("聚合地址") .. '</label><div class="cbi-value-field" style="display:flex;align-items:center;gap:8px;"><input type="text" id="nodeagg_agg_url" value="' .. url .. '" readonly style="width:300px;" /><input type="button" class="cbi-button" value="' .. translate("复制") .. '" onclick="var u=document.getElementById(\'nodeagg_agg_url\').value;navigator.clipboard.writeText(u).then(function(){alert(\'已复制: \'+u)})" /></div></div>'
+	return '<script type="text/javascript">document.addEventListener("DOMContentLoaded",function(){var u=document.querySelector("[id$=_agg_url]");if(u){var b=document.createElement("input");b.type="button";b.className="cbi-button";b.value="' .. translate("复制") .. '";b.onclick=function(){navigator.clipboard.writeText(u.value).then(function(){alert("' .. translate("已复制") .. ': "+u.value)})};u.parentNode.appendChild(b)}});</script>'
 end
 
 return m
