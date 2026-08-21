@@ -1,0 +1,11 @@
+{
+	"luci-app-nodehub": {
+		"description": "Grant UCI access for luci-app-nodehub",
+		"read": {
+			"uci": [ "nodehub", "nodehub_server" ]
+		},
+		"write": {
+			"uci": [ "nodehub", "nodehub_server" ]
+		}
+	}
+}
