@@ -1,7 +1,7 @@
 local api = require "luci.nodeagg.api"
 -- api.set_default_cbi()
 
-m = Map()
+m = Map("nodeagg")
 m.redirect = luci.dispatcher.build_url("admin", "services", "nodeagg", "subscribe")
 
 if not arg[1] or not m:get(arg[1]) then
