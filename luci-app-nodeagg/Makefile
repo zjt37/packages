@@ -11,7 +11,7 @@ define Package/luci-app-nodeagg
   CATEGORY:=LuCI
   SUBMENU:=3. Applications
   TITLE:=NodeAgg - Subscription Aggregator
-  DEPENDS:=+curl +jq +python3
+  DEPENDS:=+curl +jq +sing-box +xray-core +hysteria2
   PKGARCH:=all
 endef
 
@@ -31,7 +31,10 @@ define Package/luci-app-nodeagg/install
 
 	$(INSTALL_DATA) ./luasrc/controller/nodeagg.lua $(1)/usr/lib/lua/luci/controller/nodeagg.lua
 	$(INSTALL_DATA) ./luasrc/model/cbi/nodeagg/settings.lua $(1)/usr/lib/lua/luci/model/cbi/nodeagg/settings.lua
-	$(INSTALL_DATA) ./luasrc/view/nodeagg/main.htm $(1)/usr/lib/lua/luci/view/nodeagg/main.htm
+	$(INSTALL_DATA) ./luasrc/model/cbi/nodeagg/node_list.lua $(1)/usr/lib/lua/luci/model/cbi/nodeagg/node_list.lua
+	$(INSTALL_DATA) ./luasrc/model/cbi/nodeagg/subscribe.lua $(1)/usr/lib/lua/luci/model/cbi/nodeagg/subscribe.lua
+	$(INSTALL_DATA) ./luasrc/model/cbi/nodeagg/subscribe_edit.lua $(1)/usr/lib/lua/luci/model/cbi/nodeagg/subscribe_edit.lua
+	$(INSTALL_DATA) ./luasrc/view/nodeagg/heading.htm $(1)/usr/lib/lua/luci/view/nodeagg/heading.htm
 	$(INSTALL_DATA) ./root/usr/share/luci/menu.d/luci-app-nodeagg.json $(1)/usr/share/luci/menu.d/luci-app-nodeagg.json
 	$(INSTALL_DATA) ./root/usr/share/rpcd/acl.d/luci-app-nodeagg.json $(1)/usr/share/rpcd/acl.d/luci-app-nodeagg.json
 endef
