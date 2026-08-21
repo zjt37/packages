@@ -39,6 +39,12 @@ s.addremove = true
 s.anonymous = true
 s.sortable = true
 s.template = "cbi/tblsection"
+s.extedit = luci.dispatcher.build_url("admin", "services", "nodeagg", "subscribe_edit", "%s")
+function s.create(e, t)
+	local uid = "sub_" .. os.date("%Y%m%d%H%M%S")
+	TypedSection.create(e, uid)
+	luci.http.redirect(e.extedit:format(uid))
+end
 
 o = s:option(Value, "remark", translate("备注"))
 o.width = "auto"
