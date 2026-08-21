@@ -14,7 +14,7 @@ o = s:option(DummyValue, "agg_url_row", " ")
 o.rawhtml = true
 o.cfgvalue = function(self, section)
 	local url = m.uci:get("nodeagg", section, "agg_url") or "http://192.168.2.30/nodeagg.txt"
-	return '<div class="cbi-value"><label class="cbi-value-title">' .. translate("聚合地址") .. '</label><div class="cbi-value-field"><input type="text" id="nodeagg_agg_url" value="' .. url .. '" readonly style="width:300px;" /> <input type="button" class="cbi-button" value="' .. translate("复制") .. '" onclick="var u=document.getElementById(\'nodeagg_agg_url\').value;navigator.clipboard.writeText(u).then(function(){alert(\'已复制: \'+u)})" /></div></div>'
+	return '<div class="cbi-value" style="display:flex;align-items:center;"><label class="cbi-value-title" style="min-width:120px;">' .. translate("聚合地址") .. '</label><div class="cbi-value-field" style="display:flex;align-items:center;gap:8px;"><input type="text" id="nodeagg_agg_url" value="' .. url .. '" readonly style="width:300px;" /><input type="button" class="cbi-button" value="' .. translate("复制") .. '" onclick="var u=document.getElementById(\'nodeagg_agg_url\').value;navigator.clipboard.writeText(u).then(function(){alert(\'已复制: \'+u)})" /></div></div>'
 end
 
 return m
