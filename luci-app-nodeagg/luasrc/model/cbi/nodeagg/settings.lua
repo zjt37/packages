@@ -18,7 +18,7 @@ o = s:option(DummyValue, "_copy", " ")
 o.rawhtml = true
 o.cfgvalue = function(self, section)
 	local url = m.uci:get("nodeagg", section, "agg_url") or ""
-	return '<input type="button" class="cbi-button cbi-button-apply" style="background-color:#4CAF50;color:white;" value="' .. translate("复制") .. '" onclick="var u=document.querySelector(\'[id$=_agg_url]\').value;navigator.clipboard.writeText(u).then(function(){alert(\'已复制: \'+u)})" />'
+	return '<input type="button" class="cbi-button" style="background-color:#2196F3 !important;color:white !important;border-color:#1976D2 !important;" value="' .. translate("复制") .. '" onclick="var u=document.querySelector(\'[id$=_agg_url]\').value;navigator.clipboard.writeText(u).then(function(){alert(\'已复制: \'+u)})" />'
 end
 
 return m
