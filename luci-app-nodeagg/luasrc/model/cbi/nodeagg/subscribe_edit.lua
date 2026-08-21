@@ -1,5 +1,5 @@
 local api = require "luci.nodeagg.api"
-api.set_default_cbi()
+-- api.set_default_cbi()
 
 m = Map()
 m.redirect = luci.dispatcher.build_url("admin", "services", "nodeagg", "subscribe")

@@ -1,5 +1,5 @@
 local api = require "luci.nodeagg.api"
-api.set_default_cbi()
+-- api.set_default_cbi()
 
 m = Map()
 
