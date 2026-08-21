@@ -1455,8 +1455,14 @@ function set_default_cbi()
 		function Map.foreach(self, stype, func)
 			self.uci:foreach(self.config, stype, func)
 		end
+		local cbi_map_init = cbi.Map.__init__
 		function Map.template_path(self, template)
-			return appname .. template
+			local nodeagg_path = appname .. template
+			local full_path = (require "luci.template").viewdir .. "/" .. nodeagg_path .. ".htm"
+			if (require "nixio.fs").access(full_path) then
+				return nodeagg_path
+			end
+			return template
 		end
 		function Map.appendTemplate(self, template, data)
 			local obj = cbi.Template(self:template_path(template))
