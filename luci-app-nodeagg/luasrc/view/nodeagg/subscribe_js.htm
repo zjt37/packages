@@ -1,0 +1,13 @@
+<script type="text/javascript">
+//<![CDATA[
+function ManualSubscribe(sectionId) {
+	var urlInput = document.querySelector("input[name='cbid.nodeagg." + sectionId + ".url']");
+	var currentUrl = urlInput ? urlInput.value.trim() : "";
+	if (!currentUrl) {
+		alert("<%:订阅地址不能为空%>");
+		return;
+	}
+	alert("<%:手动订阅%>: " + currentUrl);
+}
+//]]>
+</script>
