@@ -47,14 +47,7 @@ o.rmempty = false
 o = s:option(DummyValue, "_node_count", translate("订阅信息"))
 o.rawhtml = true
 o.cfgvalue = function(self, section)
-	local remark = m:get(section, "remark") or ""
-	local num = 0
-	m:foreach("nodes", function(s)
-		if s["group"] and s["group"]:lower() == remark:lower() then
-			num = num + 1
-		end
-	end)
-	return translate("节点数量") .. ": " .. num
+	return translate("节点数量") .. ": 0"
 end
 
 o = s:option(Value, "url", translate("订阅地址"))
