@@ -23,7 +23,7 @@ o.cfgvalue = function(self, section)
 end
 
 -- 订阅源
-s = m:section(TypedSection, "subscribe_list", translate("订阅源"))
+s = m:section(TypedSection, "subscribe_list")
 s.addremove = true
 s.anonymous = true
 s.sortable = true
