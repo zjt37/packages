@@ -12,15 +12,10 @@ o.rmempty = false
 
 o = s:option(Value, "agg_url", translate("聚合地址"))
 o.readonly = true
-o.placeholder = "http://192.168.2.30:8080/nodeagg.txt"
+o.placeholder = "http://192.168.2.30/nodeagg.txt"
 
 o = s:option(Button, "_copy", translate("复制地址"))
-o.inputstyle = "reset"
+o.inputstyle = "apply"
 o.inputtitle = translate("复制")
-o.onclick = function(self)
-	local url = m.uci:get("nodeagg", "@nodeagg[0]", "agg_url") or ""
-	luci.http.prepare_content("text/plain")
-	luci.http.write(url)
-end
 
 return m
