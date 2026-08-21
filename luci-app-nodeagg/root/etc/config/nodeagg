@@ -1,0 +1,7 @@
+config nodeagg general
+	option enabled '0'
+	option agg_url 'http://192.168.2.30/nodeagg.txt'
+
+config subscribe_list sub_test
+	option remark '测试订阅'
+	option url 'https://example.com/subscribe'
