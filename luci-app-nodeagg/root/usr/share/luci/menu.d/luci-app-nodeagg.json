@@ -1,0 +1,13 @@
+{
+	"admin/services/nodeagg": {
+		"title": "节点聚合",
+		"action": {
+			"type": "template",
+			"template": "nodeagg/main"
+		},
+		"depends": {
+			"acl": ["luci-app-nodeagg"],
+			"uci": { "nodeagg": true }
+		}
+	}
+}

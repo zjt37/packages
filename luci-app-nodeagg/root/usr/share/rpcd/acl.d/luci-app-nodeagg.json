@@ -1,0 +1,10 @@
+{
+	"luci-app-nodeagg": {
+		"read": {
+			"uci-nodeagg": ["nodeagg"]
+		},
+		"write": {
+			"uci-nodeagg": ["nodeagg"]
+		}
+	}
+}
