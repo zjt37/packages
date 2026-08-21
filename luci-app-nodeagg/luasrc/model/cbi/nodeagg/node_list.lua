@@ -1,8 +1,12 @@
-local api = require "luci.nodeagg.api"
+local api = require "luci.passwall.api"
+local appname = "passwall"
+local sys = api.sys
+local datatypes = api.datatypes
+
 api.set_default_cbi()
 
-m = Map("nodeagg")
-m.redirect = luci.dispatcher.build_url("admin", "services", "nodeagg", "node_list")
+m = Map(appname)
+api.set_apply_on_parse(m)
 
 -- [[ Other Settings ]]--
 s = m:section(TypedSection, "global_other")
@@ -16,6 +20,13 @@ o:value("tcping", "TCP Ping")
 o = s:option(Flag, "show_node_info", translate("显示服务器地址和端口"))
 o.default = "0"
 
-m:appendTemplate("nodeagg/node_list/node_list")
+o = s:option(Value, "url_test_url", translate("URL测试地址"))
+o:value("https://cp.cloudflare.com/", "Cloudflare")
+o:value("https://www.gstatic.com/generate_204", "Gstatic")
+o:value("https://www.google.com/generate_204", "Google")
+o:value("https://www.youtube.com/generate_204", "YouTube")
+o.default = o.keylist[3]
 
-return m
+m:append(Template(appname .. "/node_list/node_list"))
+
+return api.return_map(m)
