@@ -1,9 +1,12 @@
-local api = require "luci.nodeagg.api"
+local sys = require("luci.sys")
 
-local has_ss_rust = api.is_finded("sslocal")
-local has_singbox = api.finded_com("sing-box")
-local has_xray = api.finded_com("xray")
-local has_hysteria2 = api.finded_com("hysteria")
+local function cmd_exists(cmd)
+	return sys.exec('echo -n $(type -t -p "%s" 2>/dev/null)' % cmd) ~= ""
+end
+
+local has_singbox = cmd_exists("sing-box")
+local has_xray = cmd_exists("xray")
+local has_hysteria2 = cmd_exists("hysteria2") or cmd_exists("hysteria")
 
 m = Map("nodeagg")
 
@@ -81,7 +84,7 @@ s.sortable = true
 s.template = "cbi/tblsection"
 s.extedit = luci.dispatcher.build_url("admin", "services", "nodeagg", "subscribe_edit", "%s")
 function s.create(e, t)
-	local uid = "sub_" .. api.gen_random_char(5)
+	local uid = "sub_" .. sys.exec("echo -n $(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 5)")
 	TypedSection.create(e, uid)
 	luci.http.redirect(e.extedit:format(uid))
 end
