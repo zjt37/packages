@@ -30,7 +30,7 @@ s.title = translate("订阅源")
 s.template = "nodeagg/heading"
 
 -- 订阅源
-s = m:section(TypedSection, "subscribe_list")
+s = m:section(TypedSection, "subscribe_list", "", "<font color='red'>" .. translate("添加新订阅后请保存并应用，再手动订阅。如果只修改了订阅地址，可以手动订阅，系统会自动保存。") .. "</font>")
 s.addremove = true
 s.anonymous = true
 s.sortable = true

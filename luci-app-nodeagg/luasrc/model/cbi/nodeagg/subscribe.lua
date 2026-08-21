@@ -122,7 +122,7 @@ o.cfgvalue = function(self, section)
 	 translate("Manual subscription All"))
 end
 
-s = m:section(TypedSection, "subscribe_list", "", "<font color='red'>" .. translate("When adding a new subscription, please save and apply before manually subscribing. If you only change the subscription URL, you can subscribe manually, and the system will save it automatically.") .. "</font>")
+s = m:section(TypedSection, "subscribe_list")
 s.addremove = true
 s.anonymous = true
 s.sortable = true
