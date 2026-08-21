@@ -10,9 +10,7 @@ o = s:option(Flag, "enabled", translate("启用"))
 o.default = 0
 o.rmempty = false
 
-s2 = m:section(TypedSection, "nodeagg")
-s2.anonymous = true
-s2.addremove = false
+s2 = Map("nodeagg")
 s2.template = "nodeagg/agg_url_row"
 
-return m
+return m, s2
