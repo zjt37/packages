@@ -1,11 +1,21 @@
-local sys = require("luci.sys")
+local api = require "luci.nodeagg.api"
+api.set_default_cbi()
 
-m = Map("nodeagg", translate("订阅配置"))
+m = Map()
 m.redirect = luci.dispatcher.build_url("admin", "services", "nodeagg", "subscribe")
 
 if not arg[1] or not m:get(arg[1]) then
 	luci.http.redirect(m.redirect)
 end
+
+function m.on_before_save(self)
+	self:del(arg[1], "md5")
+end
+
+local has_ss_rust = api.is_finded("sslocal")
+local has_singbox = api.finded_com("sing-box")
+local has_xray = api.finded_com("xray")
+local has_hysteria2 = api.finded_com("hysteria")
 
 s = m:section(NamedSection, arg[1])
 s.addremove = false
@@ -37,36 +47,46 @@ o:depends("filter_keyword_mode", "2")
 o:depends("filter_keyword_mode", "3")
 o:depends("filter_keyword_mode", "4")
 
-o = s:option(ListValue, "ss_type", translate("%s 节点使用类型", "Shadowsocks"))
-o.default = "global"
-o:value("global", translate("使用全局配置"))
-o:value("sing-box", "sing-box")
-o:value("xray", "xray")
+if has_ss_rust or has_singbox or has_xray then
+	o = s:option(ListValue, "ss_type", translatef("%s 节点使用类型", "Shadowsocks"))
+	o.default = "global"
+	o:value("global", translate("使用全局配置"))
+	if has_singbox then o:value("sing-box", "sing-box") end
+	if has_xray then o:value("xray", "xray") end
+end
 
-o = s:option(ListValue, "trojan_type", translate("%s 节点使用类型", "Trojan"))
-o.default = "global"
-o:value("global", translate("使用全局配置"))
-o:value("sing-box", "sing-box")
-o:value("xray", "xray")
+if has_ss_rust or has_singbox or has_xray then
+	o = s:option(ListValue, "trojan_type", translatef("%s 节点使用类型", "Trojan"))
+	o.default = "global"
+	o:value("global", translate("使用全局配置"))
+	if has_singbox then o:value("sing-box", "sing-box") end
+	if has_xray then o:value("xray", "xray") end
+end
 
-o = s:option(ListValue, "vmess_type", translate("%s 节点使用类型", "VMess"))
-o.default = "global"
-o:value("global", translate("使用全局配置"))
-o:value("sing-box", "sing-box")
-o:value("xray", "xray")
+if has_ss_rust or has_singbox or has_xray then
+	o = s:option(ListValue, "vmess_type", translatef("%s 节点使用类型", "VMess"))
+	o.default = "global"
+	o:value("global", translate("使用全局配置"))
+	if has_singbox then o:value("sing-box", "sing-box") end
+	if has_xray then o:value("xray", "xray") end
+end
 
-o = s:option(ListValue, "vless_type", translate("%s 节点使用类型", "VLESS"))
-o.default = "global"
-o:value("global", translate("使用全局配置"))
-o:value("sing-box", "sing-box")
-o:value("xray", "xray")
+if has_ss_rust or has_singbox or has_xray then
+	o = s:option(ListValue, "vless_type", translatef("%s 节点使用类型", "VLESS"))
+	o.default = "global"
+	o:value("global", translate("使用全局配置"))
+	if has_singbox then o:value("sing-box", "sing-box") end
+	if has_xray then o:value("xray", "xray") end
+end
 
-o = s:option(ListValue, "hysteria2_type", translate("%s 节点使用类型", "Hysteria2"))
-o.default = "global"
-o:value("global", translate("使用全局配置"))
-o:value("sing-box", "sing-box")
-o:value("xray", "xray")
-o:value("hysteria2", "hysteria2")
+if has_singbox or has_xray or has_hysteria2 then
+	o = s:option(ListValue, "hysteria2_type", translatef("%s 节点使用类型", "Hysteria2"))
+	o.default = "global"
+	o:value("global", translate("使用全局配置"))
+	if has_singbox then o:value("sing-box", "sing-box") end
+	if has_xray then o:value("xray", "xray") end
+	if has_hysteria2 then o:value("hysteria2", "hysteria2") end
+end
 
 o = s:option(Flag, "boot_update", translate("启动时更新一次"))
 o.default = 0
