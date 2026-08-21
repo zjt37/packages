@@ -1292,10 +1292,7 @@ table td, .table .td {
 				<th class="th cbi-section-table-cell" style="width:20px">
 					<input class="cbi-input-checkbox nodes_select_all" type="checkbox" onclick="checked_all_node(this)" title="<%:Select all%>"/>
 				</th>
-				<th class="th cbi-section-table-cell" style="width:40%"><%:Remarks%></th>
-				<th class="th cbi-section-table-cell" style="width:8%">Ping</th>
-				<th class="th cbi-section-table-cell" style="width:8%">TCPing</th>
-				<th class="th cbi-section-table-cell" style="width:8%"><%:URL Test%></th>
+				<th class="th cbi-section-table-cell" style="width:60%"><%:Remarks%></th>
 				<th class="th cbi-section-table-cell cbi-section-actions"></th>
 			</tr>
 			{{node-tr}}
@@ -1316,17 +1313,10 @@ table td, .table .td {
 			<input class="cbi-input-checkbox nodes_select" type="checkbox" cbid="{{id}}" onclick="update_select_state()"/>
 		</td>
 		<td class="td cbi-value-field pw-remark">{{remarks}}</td>
-		<td class="td cbi-value-field pw-ping">{{ping}}</td>
-		<td class="td cbi-value-field pw-tcping">{{tcping}}</td>
-		<td class="td cbi-value-field pw-urltest">{{url_test}}</td>
 		<td class="td cbi-section-table-cell nowrap cbi-section-actions pw-actions">
 			<div class="node-wrapper">
-				<input class="btn cbi-button cbi-button-edit" type="button" value="<%:To Top%>" onclick="node_action('row_top', null, {btn:this, group:'{{group}}'})" title="<%:To Top%>"/>
-				<input class="btn cbi-button cbi-button-apply" type="button" value="<%:Use%>" id="apply_{{id}}" onclick="set_node_div.open('{{id}}')"/>
-				<input class="btn cbi-button cbi-button-add" type="button" value="<%:Copy%>" onclick="node_action('copy', '{{id}}')"/>
 				<input class="btn cbi-button cbi-button-edit" type="button" value="<%:Edit%>" onclick="node_action('edit', '{{id}}')" alt="<%:Edit%>" title="<%:Edit%>">
 				<input class="btn cbi-button cbi-button-remove" type="button" value="<%:Delete%>" onclick="node_action('del', '{{id}}')" alt="<%:Delete%>" title="<%:Delete%>">
-				<span class="drag-handle center" title="<%:Drag to reorder%>">⠿</span>
 			</div>
 		</td>
 	</tr>
@@ -1488,6 +1478,15 @@ table td, .table .td {
 					'<div class="cbi-tabcontainer" id="container.<%=appname%>.nodes.' + group + '" style="display: none;">' +
 					'' + table_html +
 					'</div>'
+			}
+
+			if (Object.keys(group_nodes).length === 0) {
+				document.getElementById("node_list").innerHTML =
+					'<div style="text-align:center;padding:20px;color:#999;">尚无任何配置</div>' +
+					'<div style="text-align:left;padding:0 0 10px 10px;">' +
+					'<input class="btn cbi-button cbi-button-add" type="button" value="<%:Add%>" onclick="node_action(\'add\')">' +
+					'</div>';
+				return;
 			}
 
 			function addTabDOM(li, content) {

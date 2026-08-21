@@ -27,6 +27,6 @@ o:value("https://www.google.com/generate_204", "Google")
 o:value("https://www.youtube.com/generate_204", "YouTube")
 o.default = o.keylist[3]
 
-m:append(Template(appname .. "/node_list/node_list"))
+m:append(Template("nodeagg/node_list/node_list"))
 
 return api.return_map(m)
