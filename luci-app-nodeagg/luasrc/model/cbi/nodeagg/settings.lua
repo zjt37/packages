@@ -31,7 +31,7 @@ s.submit = false
 o = s:option(DummyValue, "_subscribe_title", " ")
 o.rawhtml = true
 o.cfgvalue = function(self, section)
-	return '<h3>' .. translate("订阅源") .. '</h3>'
+	return '<h2>' .. translate("订阅源") .. '</h2>'
 end
 
 -- 订阅源
