@@ -22,8 +22,18 @@ o.cfgvalue = function(self, section)
 	return '<input type="button" class="cbi-button" value="' .. translate("复制") .. '" onclick="var t=document.createElement(\'textarea\');t.textContent=\'' .. url .. '\';t.style.position=\'fixed\';document.body.appendChild(t);t.select();try{document.execCommand(\'copy\');alert(\'' .. translate("已复制") .. ': \'+t.textContent)}catch(e){alert(\'copy failed\')}finally{document.body.removeChild(t)}" />'
 end
 
+-- 订阅源标题
+s = m:section(TypedSection, "nodeagg")
+s.anonymous = true
+s.addremove = false
+o = s:option(DummyValue, "_subscribe_title", " ")
+o.rawhtml = true
+o.cfgvalue = function(self, section)
+	return '<h3>' .. translate("订阅源") .. '</h3>'
+end
+
 -- 订阅源
-s = m:section(TypedSection, "subscribe_list", translate("订阅源"))
+s = m:section(TypedSection, "subscribe_list")
 s.addremove = true
 s.anonymous = true
 s.sortable = true
