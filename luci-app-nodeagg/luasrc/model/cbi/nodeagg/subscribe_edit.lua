@@ -1,17 +1,22 @@
-local m, s, o
+local api = require "luci.passwall.api"
+api.set_default_cbi()
 
-m = Map("nodeagg", translate("订阅配置"))
-m.redirect = luci.dispatcher.build_url("admin", "services", "nodeagg", "subscribe")
+m = Map()
+m.redirect = api.url("node_subscribe")
 
 if not arg[1] or not m:get(arg[1]) then
 	luci.http.redirect(m.redirect)
 end
 
+function m.on_before_save(self)
+	self:del(arg[1], "md5")
+end
+
 s = m:section(NamedSection, arg[1])
 s.addremove = false
-s.anonymous = true
+s.dynamic = false
 
-o = s:option(Value, "remark", translate("备注"))
+o = s:option(Value, "remark", translate("订阅备注"))
 o.rmempty = false
 
 o = s:option(TextValue, "url", translate("订阅地址"))
@@ -85,4 +90,4 @@ o:value("clash.meta", "Clash.Meta")
 o:value("Clash", "Clash")
 o:value("curl", "Curl")
 
-return m
+return api.return_map(m)

@@ -1,11 +1,16 @@
-local m, s, o
+local api = require "luci.passwall.api"
+api.set_default_cbi()
 
-m = Map("nodeagg", translate("节点订阅"))
+m = Map()
+
+function m.on_before_save(self)
+	self:foreach("subscribe_list", function(e)
+		self:del(e[".name"], "md5")
+	end)
+end
 
 -- [[ 订阅设置 ]]--
-s = m:section(TypedSection, "nodeagg")
-s.anonymous = true
-s.addremove = false
+s = m:section(NamedSection, "@global_subscribe[0]", "global_subscribe")
 
 o = s:option(ListValue, "filter_keyword_mode", translate("过滤关键词模式"))
 o:value("0", translate("关闭"))
@@ -13,7 +18,6 @@ o:value("1", translate("丢弃列表"))
 o:value("2", translate("保留列表"))
 o:value("3", translate("丢弃列表,但保留列表优先"))
 o:value("4", translate("保留列表,但丢弃列表优先"))
-o.default = "0"
 
 o = s:option(DynamicList, "filter_discard_list", translate("丢弃列表"))
 
@@ -22,15 +26,19 @@ o = s:option(DynamicList, "filter_keep_list", translate("保留列表"))
 ---- 删除所有订阅节点
 o = s:option(DummyValue, "_stop", translate("删除所有订阅节点"))
 o.rawhtml = true
-o.cfgvalue = function(self, section)
-	return '<input type="button" class="btn cbi-button cbi-button-remove" onclick="confirmDeleteAll()" value="' .. translate("删除所有订阅节点") .. '" />'
+function o.cfgvalue(self, section)
+	return string.format(
+		[[<input type="button" class="btn cbi-button cbi-button-remove" onclick="return confirmDeleteAll()" value="%s" />]],
+		translate("删除所有订阅节点"))
 end
 
 ---- 手动订阅所有
 o = s:option(DummyValue, "_update", translate("手动订阅所有"))
 o.rawhtml = true
 o.cfgvalue = function(self, section)
-	return '<input type="button" class="btn cbi-button cbi-button-apply" onclick="ManualSubscribeAll()" value="' .. translate("手动订阅所有") .. '" />'
+	return string.format(
+		[[<input type="button" class="btn cbi-button cbi-button-apply" onclick="ManualSubscribeAll()" value="%s" />]],
+		translate("手动订阅所有"))
 end
 
 -- [[ 订阅列表 ]]--
@@ -39,10 +47,12 @@ s.addremove = true
 s.anonymous = true
 s.sortable = true
 s.template = "cbi/tblsection"
-s.extedit = luci.dispatcher.build_url("admin", "services", "nodeagg", "subscribe_edit", "%s")
+s.extedit = api.url("node_subscribe_config", "%s")
 function s.create(e, t)
-	local uid = "sub_" .. os.date("%Y%m%d%H%M%S")
+	local uid = "sub_" .. api.gen_random_char(5)
 	TypedSection.create(e, uid)
+	m:set(uid, "hysteria_up_mbps", "100")
+	m:set(uid, "hysteria_down_mbps", "100")
 	luci.http.redirect(e.extedit:format(uid))
 end
 
@@ -53,7 +63,9 @@ o.rmempty = false
 o = s:option(DummyValue, "_node_count", translate("订阅信息"))
 o.rawhtml = true
 o.cfgvalue = function(self, section)
-	return translate("节点数量") .. ": 0"
+	local remark = m:get(section, "remark") or ""
+	local num = 0
+	return string.format("%s: %d", translate("节点数量"), num)
 end
 
 o = s:option(Value, "url", translate("订阅地址"))
@@ -62,15 +74,33 @@ o.rmempty = false
 
 o = s:option(DummyValue, "_remove", translate("删除订阅节点"))
 o.rawhtml = true
-o.cfgvalue = function(self, section)
+function o.cfgvalue(self, section)
 	local remark = m:get(section, "remark") or ""
-	return '<input type="button" class="btn cbi-button cbi-button-remove" onclick="confirmDeleteNode(\'' .. remark .. '\')" value="' .. translate("删除订阅节点") .. '" />'
+	return string.format(
+		[[<input type="button" class="btn cbi-button cbi-button-remove" onclick="return confirmDeleteNode('%s')" value="%s" />]],
+		remark, translate("删除订阅节点"))
 end
 
 o = s:option(DummyValue, "_update2", translate("手动订阅"))
 o.rawhtml = true
 o.cfgvalue = function(self, section)
-	return '<input type="button" class="btn cbi-button cbi-button-apply" onclick="ManualSubscribe(\'' .. section .. '\')" value="' .. translate("手动订阅") .. '" />'
+	return string.format(
+		[[<input type="button" class="btn cbi-button cbi-button-apply" onclick="ManualSubscribe('%s')" value="%s" />]],
+		section, translate("手动订阅"))
 end
 
-return m
+s2 = m:section(TypedSection, "nodeagg")
+s2.anonymous = true
+s2.addremove = false
+o = s2:option(DummyValue, "_js", " ")
+o.rawhtml = true
+o.cfgvalue = function(self, section)
+	return '<script type="text/javascript">'
+		.. 'function confirmDeleteNode(remark){if(!confirm("' .. translate("删除订阅节点") .. ': "+remark+" ?"))return false;return true;}'
+		.. 'function confirmDeleteAll(){if(!confirm("' .. translate("确定要删除所有订阅节点吗？") .. '"))return false;return true;}'
+		.. 'function ManualSubscribe(sectionId){var urlInput=document.querySelector("input[name=\'cbid.nodeagg."+sectionId+".url\']");var currentUrl=urlInput?urlInput.value.trim():"";if(!currentUrl){alert("' .. translate("订阅地址不能为空") .. '");return;}alert("' .. translate("手动订阅") .. ': "+currentUrl);}'
+		.. 'function ManualSubscribeAll(){alert("' .. translate("手动订阅所有") .. '");}'
+		.. '</script>'
+end
+
+return api.return_map(m)
