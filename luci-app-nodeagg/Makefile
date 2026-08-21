@@ -28,6 +28,7 @@ define Package/luci-app-nodeagg/install
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/nodeagg
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/view/nodeagg
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/view/nodeagg/cbi
+	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/view/nodeagg/node_subscribe
 	$(INSTALL_DIR) $(1)/usr/share/luci/menu.d
 	$(INSTALL_DIR) $(1)/usr/share/rpcd/acl.d
 	$(INSTALL_DIR) $(1)/www/luci-static/resources/view/nodeagg
@@ -40,7 +41,7 @@ define Package/luci-app-nodeagg/install
 	$(INSTALL_DATA) ./luasrc/luci/nodeagg/api.lua $(1)/usr/lib/lua/luci/nodeagg/api.lua
 	$(INSTALL_DATA) ./luasrc/luci/nodeagg/com.lua $(1)/usr/lib/lua/luci/nodeagg/com.lua
 	$(INSTALL_DATA) ./luasrc/view/nodeagg/heading.htm $(1)/usr/lib/lua/luci/view/nodeagg/heading.htm
-	$(INSTALL_DATA) ./luasrc/view/nodeagg/subscribe_js.htm $(1)/usr/lib/lua/luci/view/nodeagg/subscribe_js.htm
+	$(INSTALL_DATA) ./luasrc/view/nodeagg/node_subscribe/js.htm $(1)/usr/lib/lua/luci/view/nodeagg/node_subscribe/js.htm
 	$(INSTALL_DATA) ./luasrc/view/nodeagg/cbi/sortable.htm $(1)/usr/lib/lua/luci/view/nodeagg/cbi/sortable.htm
 	$(INSTALL_DATA) ./luasrc/view/nodeagg/cbi/nodes_listvalue.htm $(1)/usr/lib/lua/luci/view/nodeagg/cbi/nodes_listvalue.htm
 	$(INSTALL_DATA) ./luasrc/view/nodeagg/cbi/nodes_listvalue_com.htm $(1)/usr/lib/lua/luci/view/nodeagg/cbi/nodes_listvalue_com.htm
