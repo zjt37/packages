@@ -10,13 +10,9 @@ o = s:option(Flag, "enabled", translate("启用"))
 o.default = 0
 o.rmempty = false
 
-o = s:option(DummyValue, "agg_url_display", " ")
-o.rawhtml = true
-o.cfgvalue = function(self, section)
-	local url = m.uci:get("nodeagg", section, "agg_url") or "http://192.168.2.30/nodeagg.txt"
-	return '<label for="agg_url">' .. translate("聚合地址") .. ':</label> ' ..
-		'<input type="text" id="nodeagg_agg_url" name="nodeagg.agg_url" value="' .. url .. '" readonly style="width:300px;" /> ' ..
-		'<input type="button" class="cbi-button" value="' .. translate("复制") .. '" onclick="var u=document.getElementById(\'nodeagg_agg_url\').value;navigator.clipboard.writeText(u).then(function(){alert(\'已复制: \'+u)})" />'
-end
+s2 = m:section(TypedSection, "nodeagg")
+s2.anonymous = true
+s2.addremove = false
+s2.template = "nodeagg/agg_url_row"
 
 return m
