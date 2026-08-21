@@ -1,9 +1,8 @@
 local m, s, o
 
-m = Map("nodeagg", translate("节点聚合"))
+m = Map("nodeagg", translate("聚合"))
 
--- 聚合
-s = m:section(TypedSection, "nodeagg", translate("聚合"))
+s = m:section(TypedSection, "nodeagg")
 s.anonymous = true
 s.addremove = false
 
