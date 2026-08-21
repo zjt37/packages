@@ -10,19 +10,19 @@ function index()
 	entry({"admin", "services", "nodeagg", "subscribe"}, cbi("nodeagg/subscribe"), _("节点订阅"), 3).dependent = true
 	entry({"admin", "services", "nodeagg", "subscribe_edit"}, cbi("nodeagg/subscribe_edit")).leaf = true
 
-	entry({"admin", "services", "nodeagg", "node_list", "add_node"}, call("action_add_node")).leaf = true
-	entry({"admin", "services", "nodeagg", "node_list", "copy_node"}, call("action_copy_node")).leaf = true
-	entry({"admin", "services", "nodeagg", "node_list", "delete_select_nodes"}, call("action_delete_select_nodes")).leaf = true
-	entry({"admin", "services", "nodeagg", "node_list", "clear_all_nodes"}, call("action_clear_all_nodes")).leaf = true
-	entry({"admin", "services", "nodeagg", "node_list", "set_node"}, call("action_set_node")).leaf = true
-	entry({"admin", "services", "nodeagg", "node_list", "get_node"}, call("action_get_node")).leaf = true
-	entry({"admin", "services", "nodeagg", "node_list", "get_now_use_node"}, call("action_get_now_use_node")).leaf = true
-	entry({"admin", "services", "nodeagg", "node_list", "ping_node"}, call("action_ping_node")).leaf = true
-	entry({"admin", "services", "nodeagg", "node_list", "urltest_node"}, call("action_urltest_node")).leaf = true
-	entry({"admin", "services", "nodeagg", "node_list", "link_add_node"}, call("action_link_add_node")).leaf = true
-	entry({"admin", "services", "nodeagg", "node_list", "reassign_group"}, call("action_reassign_group")).leaf = true
-	entry({"admin", "services", "nodeagg", "node_list", "save_node_list_opt"}, call("action_save_node_list_opt")).leaf = true
-	entry({"admin", "services", "nodeagg", "node_list", "node_config"}, call("action_node_config")).leaf = true
+	entry({"admin", "services", "nodeagg", "add_node"}, call("action_add_node")).leaf = true
+	entry({"admin", "services", "nodeagg", "copy_node"}, call("action_copy_node")).leaf = true
+	entry({"admin", "services", "nodeagg", "delete_select_nodes"}, call("action_delete_select_nodes")).leaf = true
+	entry({"admin", "services", "nodeagg", "clear_all_nodes"}, call("action_clear_all_nodes")).leaf = true
+	entry({"admin", "services", "nodeagg", "set_node"}, call("action_set_node")).leaf = true
+	entry({"admin", "services", "nodeagg", "get_node"}, call("action_get_node")).leaf = true
+	entry({"admin", "services", "nodeagg", "get_now_use_node"}, call("action_get_now_use_node")).leaf = true
+	entry({"admin", "services", "nodeagg", "ping_node"}, call("action_ping_node")).leaf = true
+	entry({"admin", "services", "nodeagg", "urltest_node"}, call("action_urltest_node")).leaf = true
+	entry({"admin", "services", "nodeagg", "link_add_node"}, call("action_link_add_node")).leaf = true
+	entry({"admin", "services", "nodeagg", "reassign_group"}, call("action_reassign_group")).leaf = true
+	entry({"admin", "services", "nodeagg", "save_node_list_opt"}, call("action_save_node_list_opt")).leaf = true
+	entry({"admin", "services", "nodeagg", "node_config"}, call("action_node_config")).leaf = true
 end
 
 local function uci_save()
@@ -40,10 +40,9 @@ local function gen_uid()
 end
 
 function action_add_node()
-	local redirect = http.formvalue("redirect")
 	local uid = gen_uid()
-
 	local uci = require("luci.model.uci").cursor()
+
 	uci:section(appname, "nodes", uid)
 
 	local group = http.formvalue("group")
@@ -55,12 +54,7 @@ function action_add_node()
 	uci:set(appname, uid, "remarks", uid)
 	uci_save()
 
-	if redirect == "1" then
-		http.redirect(luci.dispatcher.build_url("admin", "services", "nodeagg", "node_list"))
-	else
-		luci.http.prepare_content("application/json")
-		luci.http.write('{"result":"' .. uid .. '"}')
-	end
+	http.redirect(luci.dispatcher.build_url("admin", "services", "nodeagg", "node_list"))
 end
 
 function action_copy_node()
@@ -130,7 +124,10 @@ function action_get_node()
 	local e = {}
 	uci:foreach(appname, "nodes", function(t)
 		if t["type"] and t["type"] ~= "global" and t["type"] ~= "global_other"
-			and t["type"] ~= "global_subscribe" then
+			and t["type"] ~= "global_subscribe" and t["type"] ~= "global_haproxy"
+			and t["type"] ~= "global_delay" and t["type"] ~= "global_forwarding"
+			and t["type"] ~= "global_xray" and t["type"] ~= "global_singbox"
+			and t["type"] ~= "global_rules" and t["type"] ~= "global_app" then
 			e[#e + 1] = t
 		end
 	end)
@@ -163,7 +160,7 @@ function action_ping_node()
 		local cmd = "ping -c 1 -W 3 " .. luci.util.shellquote(address) .. " 2>/dev/null | grep -oP 'time=\\K[0-9.]+'"
 		result = luci.sys.exec(cmd):match("^%s*(.-)%s*$") or ""
 	elseif type == "tcping" and port and port ~= "" then
-		local cmd = "tcping -c 1 -W 3 " .. luci.util.shellquote(address) .. " " .. port .. " 2>/dev/null | grep -oP 'time=\\K[0-9.]+'"
+		local cmd = "ping -c 1 -W 3 " .. luci.util.shellquote(address) .. " 2>/dev/null | grep -oP 'time=\\K[0-9.]+'"
 		result = luci.sys.exec(cmd):match("^%s*(.-)%s*$") or ""
 		if result == "" then
 			cmd = "timeout 3 bash -c 'echo > /dev/tcp/" .. luci.util.shellquote(address) .. "/" .. port .. "' 2>/dev/null && echo 0"
@@ -261,10 +258,5 @@ function action_save_node_list_opt()
 end
 
 function action_node_config()
-	local section = http.formvalue("section")
-	if not section then
-		http.redirect(luci.dispatcher.build_url("admin", "services", "nodeagg", "node_list"))
-		return
-	end
 	http.redirect(luci.dispatcher.build_url("admin", "services", "nodeagg", "node_list"))
 end
