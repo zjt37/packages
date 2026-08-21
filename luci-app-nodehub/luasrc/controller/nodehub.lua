@@ -44,7 +44,6 @@ function index()
 	end
 	entry({"admin", "services", appname, "app_update"}, cbi(appname .. "/client/app_update"), _("App Update"), 95).leaf = true
 	entry({"admin", "services", appname, "rule"}, cbi(appname .. "/client/rule"), _("Rule Manage"), 96).leaf = true
-	entry({"admin", "services", appname, "rule_list"}, cbi(appname .. "/client/rule_list", {autoapply = true}), _("Rule List"), 97).leaf = true
 	entry({"admin", "services", appname, "node_subscribe_config"}, cbi(appname .. "/client/node_subscribe_config")).leaf = true
 	entry({"admin", "services", appname, "node_config"}, cbi(appname .. "/client/node_config")).leaf = true
 	entry({"admin", "services", appname, "shunt_rules"}, cbi(appname .. "/client/shunt_rules")).leaf = true
@@ -81,9 +80,6 @@ function index()
 	entry({"admin", "services", appname, "get_shunt_rules"}, call("get_shunt_rules")).leaf = true
 	entry({"admin", "services", appname, "add_shunt_rule"}, call("add_shunt_rule")).leaf = true
 	entry({"admin", "services", appname, "delete_select_shunt_rules"}, call("delete_select_shunt_rules")).leaf = true
-
-	--[[rule_list]]
-	entry({"admin", "services", appname, "read_rulelist"}, call("read_rulelist")).leaf = true
 
 	--[[Components update]]
 	entry({"admin", "services", appname, "check_nodehub"}, call("app_check")).leaf = true
@@ -714,25 +710,6 @@ end
 function com_version(comname)
 	local version = api.get_app_version(comname)
 	http_write_json_ok(version)
-end
-
-function read_rulelist()
-	local rule_type = http.formvalue("type")
-	local rule_path
-	if rule_type == "gfw" then
-		rule_path = "/usr/share/nodehub/rules/gfwlist"
-	elseif rule_type == "chn" then
-		rule_path = "/usr/share/nodehub/rules/chnlist"
-	elseif rule_type == "chnroute" then
-		rule_path = "/usr/share/nodehub/rules/chnroute"
-	else
-		http.status(400, "Invalid rule type")
-		return
-	end
-	if fs.access(rule_path) then
-		http.prepare_content("text/plain")
-		http.write(fs.readfile(rule_path))
-	end
 end
 
 local backup_files = {
