@@ -1,4 +1,4 @@
-local api = require "luci.passwall.api"
+local api = require "luci.nodeagg.api"
 api.set_default_cbi()
 
 m = Map()
@@ -269,8 +269,8 @@ o:value("direct", translate("Direct Connection"))
 o:value("proxy", translate("Proxy"))
 
 o = s:option(Value, "user_agent", translate("User-Agent"))
-o.default = "passwall"
-o:value("passwall", "PassWall")
+o.default = "nodeagg"
+o:value("nodeagg", "NodeAgg")
 o:value("v2rayN/9.99", "v2rayN")
 o:value("clash.meta", "Clash.Meta")
 o:value("Clash", "Clash")

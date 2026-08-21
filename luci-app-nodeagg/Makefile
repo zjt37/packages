@@ -25,6 +25,7 @@ endef
 define Package/luci-app-nodeagg/install
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/controller
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/model/cbi/nodeagg
+	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/luci/nodeagg
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/view/nodeagg
 	$(INSTALL_DIR) $(1)/usr/share/luci/menu.d
 	$(INSTALL_DIR) $(1)/usr/share/rpcd/acl.d
@@ -34,6 +35,8 @@ define Package/luci-app-nodeagg/install
 	$(INSTALL_DATA) ./luasrc/model/cbi/nodeagg/node_list.lua $(1)/usr/lib/lua/luci/model/cbi/nodeagg/node_list.lua
 	$(INSTALL_DATA) ./luasrc/model/cbi/nodeagg/subscribe.lua $(1)/usr/lib/lua/luci/model/cbi/nodeagg/subscribe.lua
 	$(INSTALL_DATA) ./luasrc/model/cbi/nodeagg/subscribe_edit.lua $(1)/usr/lib/lua/luci/model/cbi/nodeagg/subscribe_edit.lua
+	$(INSTALL_DATA) ./luasrc/luci/nodeagg/api.lua $(1)/usr/lib/lua/luci/luci/nodeagg/api.lua
+	$(INSTALL_DATA) ./luasrc/luci/nodeagg/com.lua $(1)/usr/lib/lua/luci/luci/nodeagg/com.lua
 	$(INSTALL_DATA) ./luasrc/view/nodeagg/heading.htm $(1)/usr/lib/lua/luci/view/nodeagg/heading.htm
 	$(INSTALL_DATA) ./root/usr/share/luci/menu.d/luci-app-nodeagg.json $(1)/usr/share/luci/menu.d/luci-app-nodeagg.json
 	$(INSTALL_DATA) ./root/usr/share/rpcd/acl.d/luci-app-nodeagg.json $(1)/usr/share/rpcd/acl.d/luci-app-nodeagg.json

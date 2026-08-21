@@ -1,4 +1,4 @@
-local api = require "luci.passwall.api"
+local api = require "luci.nodeagg.api"
 api.set_default_cbi()
 
 local has_ss_rust = api.is_finded("sslocal")
