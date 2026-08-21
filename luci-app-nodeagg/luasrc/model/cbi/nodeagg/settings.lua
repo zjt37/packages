@@ -14,8 +14,11 @@ o = s:option(Value, "agg_url", translate("聚合地址"))
 o.readonly = true
 o.placeholder = "http://192.168.2.30/nodeagg.txt"
 
-o = s:option(Button, "_copy", translate("复制地址"))
-o.inputstyle = "apply"
-o.inputtitle = translate("复制")
+o = s:option(DummyValue, "_copy", " ")
+o.rawhtml = true
+o.cfgvalue = function(self, section)
+	local url = m.uci:get("nodeagg", section, "agg_url") or ""
+	return '<input type="button" class="cbi-button cbi-button-apply" style="background-color:#4CAF50;color:white;" value="' .. translate("复制") .. '" onclick="var u=document.querySelector(\'[id$=_agg_url]\').value;navigator.clipboard.writeText(u).then(function(){alert(\'已复制: \'+u)})" />'
+end
 
 return m
