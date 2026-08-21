@@ -17,7 +17,7 @@ o.placeholder = "http://192.168.2.30/nodeagg.txt"
 o = s:option(DummyValue, "_copy", " ")
 o.rawhtml = true
 o.cfgvalue = function(self, section)
-	return '<input type="button" class="cbi-button" value="' .. translate("复制") .. '" onclick="var u=document.querySelector(\'[id$=_agg_url]\').value;navigator.clipboard.writeText(u).then(function(){alert(\'已复制: \'+u)})" />'
+	return '<input type="button" class="cbi-button" value="' .. translate("复制") .. '" onclick="var u=document.querySelector(\'[id$=.agg_url]\');if(!u)return;var t=document.createElement(\'textarea\');t.textContent=u.value;t.style.position=\'fixed\';document.body.appendChild(t);t.select();try{document.execCommand(\'copy\');alert(\'' .. translate("已复制") .. ': \'+t.textContent)}catch(e){alert(\'copy failed\')}finally{document.body.removeChild(t)}" />'
 end
 
 return m
