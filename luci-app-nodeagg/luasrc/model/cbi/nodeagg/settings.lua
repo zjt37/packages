@@ -14,8 +14,10 @@ o = s:option(Value, "agg_url", translate("聚合地址"))
 o.readonly = true
 o.placeholder = "http://192.168.2.30/nodeagg.txt"
 
-o = s:option(Button, "_copy")
-o.title = " "
-o.inputtitle = translate("复制")
+o = s:option(DummyValue, "_copy", " ")
+o.rawhtml = true
+o.cfgvalue = function(self, section)
+	return '<input type="button" class="cbi-button" value="' .. translate("复制") .. '" onclick="var u=this.parentNode.querySelector(\'input[type=text]\');if(u){navigator.clipboard.writeText(u.value).then(function(){alert(\'' .. translate("已复制") .. ': \'+u.value)})}" />'
+end
 
 return m
