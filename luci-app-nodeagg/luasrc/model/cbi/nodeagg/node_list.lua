@@ -1,5 +1,4 @@
 local api = require "luci.passwall.api"
-api.set_default_cbi()
 
 m = Map("nodeagg")
 
