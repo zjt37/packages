@@ -1493,13 +1493,7 @@ function set_default_cbi()
 		end
 	end
 	if true then
-		--TextValue
-		local TextValue = cbi.TextValue
-		local default_init = TextValue.__init__
-		function TextValue.__init__(self, ...)
-			default_init(self, ...)
-			self.template  = appname .. "/cbi/tvalue"
-		end
+		--TextValue (no override, use standard cbi/tvalue)
 	end
 	if true then
 		--DynamicList
