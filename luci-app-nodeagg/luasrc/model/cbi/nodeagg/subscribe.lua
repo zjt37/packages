@@ -82,6 +82,39 @@ o.cfgvalue = function(self, section)
 		section, translate("手动订阅"))
 end
 
-m:appendTemplate("/nodeagg/subscribe_js")
+-- JS脚本
+s2 = m:section(TypedSection, "nodeagg")
+s2.anonymous = true
+s2.addremove = false
+o = s2:option(DummyValue, "_js", " ")
+o.rawhtml = true
+o.cfgvalue = function(self, section)
+	return [[<script type="text/javascript">
+//<![CDATA[
+function confirmDeleteNode(remark) {
+	if (!confirm("]] .. translate("删除订阅节点") .. [[: " + remark + " ?"))
+		return false;
+	return true;
+}
+function confirmDeleteAll() {
+	if (!confirm("]] .. translate("确定要删除所有订阅节点吗？") .. [["))
+		return false;
+	return true;
+}
+function ManualSubscribe(sectionId) {
+	var urlInput = document.querySelector("input[name='cbid.nodeagg." + sectionId + ".url']");
+	var currentUrl = urlInput ? urlInput.value.trim() : "";
+	if (!currentUrl) {
+		alert("]] .. translate("订阅地址不能为空") .. [[");
+		return;
+	}
+	alert("]] .. translate("手动订阅") .. [[: " + currentUrl);
+}
+function ManualSubscribeAll() {
+	alert("]] .. translate("手动订阅所有") .. [[");
+}
+//]]>
+</script>]]
+end
 
 return m
