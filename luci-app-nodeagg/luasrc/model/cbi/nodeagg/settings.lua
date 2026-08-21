@@ -26,13 +26,8 @@ end
 s = m:section(TypedSection, "nodeagg")
 s.anonymous = true
 s.addremove = false
-s.reset = false
-s.submit = false
-o = s:option(DummyValue, "_subscribe_title", " ")
-o.rawhtml = true
-o.cfgvalue = function(self, section)
-	return '<h2>' .. translate("订阅源") .. '</h2>'
-end
+s.title = translate("订阅源")
+s.template = "nodeagg/heading"
 
 -- 订阅源
 s = m:section(TypedSection, "subscribe_list")
