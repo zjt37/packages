@@ -73,23 +73,10 @@ function index()
 	entry({"admin", "services", appname, "subscribe_manual_all"}, call("subscribe_manual_all")).leaf = true
 	entry({"admin", "services", appname, "flush_set"}, call("flush_set")).leaf = true
 
-	--[[Components update]]
-	entry({"admin", "services", appname, "check_nodehub"}, call("app_check")).leaf = true
-	local coms = require "luci.nodehub.com"
-	local com
-	for _, com in ipairs(coms.order) do
-		entry({"admin", "services", appname, "check_" .. com}, call("com_check", com)).leaf = true
-		entry({"admin", "services", appname, "update_" .. com}, call("com_update", com)).leaf = true
-		entry({"admin", "services", appname, "version_" .. com}, call("com_version", com)).leaf = true
-	end
-
 	--[[Backup]]
 	entry({"admin", "services", appname, "create_backup"}, call("create_backup")).leaf = true
 	entry({"admin", "services", appname, "restore_backup"}, call("restore_backup")).leaf = true
 	entry({"admin", "services", appname, "reset_config"}, call("reset_config")).leaf = true
-
-	--[[geoview]]
-	entry({"admin", "services", appname, "geo_view"}, call("geo_view")).leaf = true
 
 	entry({"admin", "services", appname, "fetch_certsha256"}, call("fetch_certsha256")).leaf = true
 	entry({"admin", "services", appname, "gen_wireguard_key"}, call("gen_wireguard_key")).leaf = true
@@ -645,36 +632,7 @@ function server_status()
 	e.index = http.formvalue("index")
 	e.status = luci.sys.call(string.format("/bin/busybox top -bn1 | grep -v 'grep' | grep '%s/bin/' | grep -i '%s' >/dev/null", appname .. "_server", http.formvalue("id"))) == 0
 	http_write_json(e)
-end
-
-function app_check()
-	local json = api.to_check_self()
-	http_write_json(json)
-end
-
-function com_check(comname)
-	local json = api.to_check("",comname)
-	http_write_json(json)
-end
-
-function com_update(comname)
-	local json = nil
-	local task = http.formvalue("task")
-	if task == "extract" then
-		json = api.to_extract(comname, http.formvalue("file"), http.formvalue("subfix"))
-	elseif task == "move" then
-		json = api.to_move(comname, http.formvalue("file"))
-	else
-		json = api.to_download(comname, http.formvalue("url"), http.formvalue("size"))
 	end
-
-	http_write_json(json)
-end
-
-function com_version(comname)
-	local version = api.get_app_version(comname)
-	http_write_json_ok(version)
-end
 
 local backup_files = {
     "/etc/config/nodehub",
@@ -757,85 +715,6 @@ function restore_backup()
 		result = { status = "error", message = tostring(err) }
 	end
 	http_write_json(result)
-end
-
-function geo_view()
-	local action = http.formvalue("action")
-	local value = http.formvalue("value")
-	if not value or value == "" then
-		http.prepare_content("text/plain")
-		http.write(i18n.translate("Please enter query content!"))
-		return
-	end
-	local function get_rules(str, type)
-		local rules_id = {}
-		uci_foreach("shunt_rules", function(s)
-			local list
-			if type == "geoip" then list = s.ip_list else list = s.domain_list end
-			for line in string.gmatch((list or ""), "[^\r\n]+") do
-				if line ~= "" and not line:find("#") then
-					local prefix, main = line:match("^(.-):(.*)")
-					if not main then main = line end
-					if type == "geoip" and (api.datatypes.ipaddr(str) or api.datatypes.ip6addr(str)) then
-						if main:find(str, 1, true) then rules_id[#rules_id + 1] = s[".name"] end
-					else
-						if main == str then rules_id[#rules_id + 1] = s[".name"] end
-					end
-				end
-			end
-		end)
-		return rules_id
-	end
-	local geo_dir = (uci_get("@global_rules[0]", "v2ray_location_asset") or "/usr/share/v2ray/"):match("^(.*)/")
-	local geosite_path = geo_dir .. "/geosite.dat"
-	local geoip_path = geo_dir .. "/geoip.dat"
-	local geo_type, file_path, cmd
-	local geo_string = ""
-	local bin = api.finded_com("geoview")
-	if action == "lookup" then
-		if api.datatypes.ipaddr(value) or api.datatypes.ip6addr(value) then
-			geo_type, file_path = "geoip", geoip_path
-		else
-			geo_type, file_path = "geosite", geosite_path
-		end
-		cmd = string.format("%q -type %q -action lookup -input %q -value %q -lowmem=true", bin, geo_type, file_path, value)
-		geo_string = luci.sys.exec(cmd):lower()
-		if geo_string ~= "" then
-			local lines, rules, seen = {}, {}, {}
-			for line in geo_string:gmatch("([^\n]+)") do
-				lines[#lines + 1] = geo_type .. ":" .. line
-				for _, r in ipairs(get_rules(line, geo_type) or {}) do
-					if not seen[r] then seen[r] = true; rules[#rules + 1] = r end
-				end
-			end
-			for _, r in ipairs(get_rules(value, geo_type) or {}) do
-				if not seen[r] then seen[r] = true; rules[#rules + 1] = r end
-			end
-			geo_string = table.concat(lines, "\n")
-			if #rules > 0 then
-				geo_string = geo_string .. "\n--------------------\n"
-				geo_string = geo_string .. i18n.translate("Rules containing this value:") .. "\n"
-				geo_string = geo_string .. table.concat(rules, "\n")
-			end
-		end
-	elseif action == "extract" then
-		local prefix, list = value:match("^(geoip:)(.*)$")
-		if not prefix then
-			prefix, list = value:match("^(geosite:)(.*)$")
-		end
-		if prefix and list and list ~= "" then
-			geo_type = prefix:sub(1, -2)
-			file_path = (geo_type == "geoip") and geoip_path or geosite_path
-			cmd = string.format("%q -type %q -action extract -input %q -list %q -lowmem=true", bin, geo_type, file_path, list)
-			geo_string = luci.sys.exec(cmd)
-		end
-	end
-	http.prepare_content("text/plain")
-	if geo_string and geo_string ~="" then
-		http.write(geo_string)
-	else
-		http.write(i18n.translate("No results were found!"))
-	end
 end
 
 function subscribe_del_node()
