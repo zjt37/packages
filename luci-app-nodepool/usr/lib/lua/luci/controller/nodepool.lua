@@ -43,14 +43,9 @@ function index()
 		entry({"admin", "services", appname, "haproxy"}, cbi(appname .. "/client/haproxy"), _("Load Balancing"), 93).leaf = true
 	end
 	entry({"admin", "services", appname, "app_update"}, cbi(appname .. "/client/app_update"), _("App Update"), 95).leaf = true
-	entry({"admin", "services", appname, "rule"}, cbi(appname .. "/client/rule"), _("Rule Manage"), 96).leaf = true
-	entry({"admin", "services", appname, "rule_list"}, cbi(appname .. "/client/rule_list", {autoapply = true}), _("Rule List"), 97).leaf = true
 	entry({"admin", "services", appname, "node_subscribe_config"}, cbi(appname .. "/client/node_subscribe_config")).leaf = true
 	entry({"admin", "services", appname, "node_config"}, cbi(appname .. "/client/node_config")).leaf = true
-	entry({"admin", "services", appname, "shunt_rules"}, cbi(appname .. "/client/shunt_rules")).leaf = true
 	entry({"admin", "services", appname, "socks_config"}, cbi(appname .. "/client/socks_config")).leaf = true
-	entry({"admin", "services", appname, "acl"}, cbi(appname .. "/client/acl"), _("Access control"), 98).leaf = true
-	entry({"admin", "services", appname, "acl_config"}, cbi(appname .. "/client/acl_config")).leaf = true
 
 
 	--[[ API ]]
@@ -74,19 +69,13 @@ function index()
 	entry({"admin", "services", appname, "reassign_group"}, call("reassign_group")).leaf = true
 	entry({"admin", "services", appname, "get_node"}, call("get_node")).leaf = true
 	entry({"admin", "services", appname, "save_node_list_opt"}, call("save_node_list_opt")).leaf = true
-	entry({"admin", "services", appname, "update_rules"}, call("update_rules")).leaf = true
-	entry({"admin", "services", appname, "rollback_rules"}, call("rollback_rules")).leaf = true
 	entry({"admin", "services", appname, "subscribe_del_node"}, call("subscribe_del_node")).leaf = true
 	entry({"admin", "services", appname, "subscribe_del_all"}, call("subscribe_del_all")).leaf = true
 	entry({"admin", "services", appname, "subscribe_manual"}, call("subscribe_manual")).leaf = true
 	entry({"admin", "services", appname, "subscribe_manual_all"}, call("subscribe_manual_all")).leaf = true
 	entry({"admin", "services", appname, "flush_set"}, call("flush_set")).leaf = true
-	entry({"admin", "services", appname, "get_shunt_rules"}, call("get_shunt_rules")).leaf = true
-	entry({"admin", "services", appname, "add_shunt_rule"}, call("add_shunt_rule")).leaf = true
-	entry({"admin", "services", appname, "delete_select_shunt_rules"}, call("delete_select_shunt_rules")).leaf = true
 
 	--[[rule_list]]
-	entry({"admin", "services", appname, "read_rulelist"}, call("read_rulelist")).leaf = true
 
 	--[[Components update]]
 	entry({"admin", "services", appname, "check_nodepool"}, call("app_check")).leaf = true
@@ -641,33 +630,7 @@ function save_node_list_opt()
 	http_write_json({ status = "ok" })
 end
 
-function update_rules()
-	local update = http.formvalue("update") or ""
-	if update == "" then
-		http_write_json_error({ message = "missing update target" })
-		return
-	end
-	luci.sys.call("lua /usr/share/nodepool/rule_update.lua '" .. update .. "' > /dev/null 2>&1 &")
-	http_write_json()
-end
 
-function rollback_rules()
-	local arg_type = http.formvalue("type")
-	local rules = http.formvalue("rules") or ""
-	if arg_type ~= "geoip" and arg_type ~= "geosite" then
-		http_write_json_error()
-		return
-	end
-	local bak_dir = "/tmp/bak_v2ray/"
-	local geo_dir = (uci_get("@global_rules[0]", "v2ray_location_asset") or "/usr/share/v2ray/")
-	local geo2rule = uci_get("@global_rules[0]", "geo2rule") or "0"
-	fs.move(bak_dir .. arg_type .. ".dat", geo_dir .. arg_type .. ".dat")
-	fs.rmdir(bak_dir)
-	if geo2rule == "1" and rules ~= "" then
-		luci.sys.call("lua /usr/share/nodepool/rule_update.lua '" .. rules .. "' rollback > /dev/null")
-	end
-	http_write_json_ok()
-end
 
 
 
@@ -703,24 +666,6 @@ function com_version(comname)
 	http_write_json_ok(version)
 end
 
-function read_rulelist()
-	local rule_type = http.formvalue("type")
-	local rule_path
-	if rule_type == "gfw" then
-		rule_path = "/usr/share/nodepool/rules/gfwlist"
-	elseif rule_type == "chn" then
-		rule_path = "/usr/share/nodepool/rules/chnlist"
-	elseif rule_type == "chnroute" then
-		rule_path = "/usr/share/nodepool/rules/chnroute"
-	else
-		http.status(400, "Invalid rule type")
-		return
-	end
-	if fs.access(rule_path) then
-		http.prepare_content("text/plain")
-		http.write(fs.readfile(rule_path))
-	end
-end
 
 local backup_files = {
     "/etc/config/nodepool",
@@ -979,76 +924,8 @@ function fetch_certsha256()
 	http_write_json(data ~= "" and { code = 1, data = data } or { code = 0 })
 end
 
-function get_shunt_rules()
-	local id = http.formvalue("id")
-	local result = {}
 
-	if id then
-		result = uci_get(id)
-	else
-		local default_items = {}
-		local other_items = {}
-		uci_foreach("shunt_rules", function(t)
-			if not t.group or t.group == "" then
-				default_items[#default_items + 1] = t
-			else
-				other_items[#other_items + 1] = t
-			end
-		end)
-		for i = 1, #default_items do result[#result + 1] = default_items[i] end
-		for i = 1, #other_items do result[#result + 1] = other_items[i] end
-	end
-	http_write_json(result)
-end
 
-function add_shunt_rule()
-	local add_name = http.formvalue("add_name")
-	local redirect = http.formvalue("redirect")
-
-	local uid = add_name
-	if add_name then
-		local has = uci_get(uid)
-		if has then
-			http_write_json_error({ message = i18n.translate("This ID already exists.") })
-			return
-		end
-	else
-		uid = api.gen_random_char()
-	end
-	uci:section(c_config, "shunt_rules", uid)
-
-	local group = http.formvalue("group")
-	if group and group ~= "default" then
-		uci_set(uid, "group", group)
-	end
-
-	if redirect == "1" then
-		uci_save()
-		http.redirect(api.url("shunt_rules", uid))
-	else
-		uci_save()
-		http_write_json_ok({uid = uid, redirect_url = api.url("shunt_rules", uid)})
-	end
-end
-
-function delete_select_shunt_rules()
-	local ids = http.formvalue("ids")
-	local redirect = http.formvalue("redirect")
-	string.gsub(ids, '[^' .. "," .. ']+', function(w)
-		uci_foreach("nodes", function(s)
-			if s["protocol"] and s["protocol"] == "_shunt" then
-				uci_del(s[".name"], w)
-			end
-		end)
-		uci_del(w)
-	end)
-	if redirect == "1" then
-		uci_save()
-		http.redirect(api.url("rule"))
-	else
-		uci_save(true, true)
-	end
-end
 
 function gen_wireguard_key()
 	local key = api.gen_wireguard_key()
