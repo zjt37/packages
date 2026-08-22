@@ -1,0 +1,4 @@
+{
+	"config": "nodepool_server",
+	"init": "nodepool_server"
+}

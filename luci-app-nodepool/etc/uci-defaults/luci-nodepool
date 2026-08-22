@@ -1,0 +1,81 @@
+#!/bin/sh
+
+if [ -e "/etc/config/ucitrack" ]; then
+    uci -q batch <<-EOF
+ 		delete ucitrack.@nodepool[-1]
+		add ucitrack nodepool
+		set ucitrack.@nodepool[-1].init=nodepool
+		delete ucitrack.@nodepool_server[-1]
+		add ucitrack nodepool_server
+		set ucitrack.@nodepool_server[-1].init=nodepool_server
+		commit ucitrack
+EOF
+fi
+
+uci -q batch <<-EOF
+	delete firewall.nodepool
+	set firewall.nodepool=include
+	set firewall.nodepool.type='script'
+	set firewall.nodepool.path='/var/etc/nodepool.include'
+
+	delete firewall.nodepool_server
+	set firewall.nodepool_server=include
+	set firewall.nodepool_server.type='script'
+	set firewall.nodepool_server.path='/var/etc/nodepool_server.include'
+
+	set dhcp.@dnsmasq[0].localuse=1
+	commit dhcp
+	set uhttpd.main.max_requests=50
+	commit uhttpd
+EOF
+
+if [ -x "/sbin/fw3" ]; then
+	uci -q set firewall.nodepool.reload='1'
+	uci -q set firewall.nodepool_server.reload='1'
+else
+	uci -q delete firewall.nodepool.reload
+	uci -q delete firewall.nodepool.fw4_compatible
+	uci -q delete firewall.nodepool_server.reload
+	uci -q delete firewall.nodepool_server.fw4_compatible
+fi
+uci commit firewall
+
+[ ! -s "/etc/config/nodepool" ] && cp -f /usr/share/nodepool/0_default_config /etc/config/nodepool
+
+chmod +x /usr/share/nodepool/*.sh
+
+[ "$(uci -q get nodepool.@global_xray[0].sniffing)" == "1" ] && [ "$(uci -q get nodepool.@global_xray[0].route_only)" != "1" ] && uci -q set nodepool.@global_xray[0].sniffing_override_dest=1
+uci -q delete nodepool.@global_xray[0].sniffing
+uci -q delete nodepool.@global_xray[0].route_only
+
+for sid in $(uci show nodepool | grep "=socks" | awk -F '.' '{print $2}' | awk -F '=' '{print $1}'); do
+	if [ -z "$(echo ${sid} | grep '^socks_')" ]; then
+		new_id="socks_$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 5)"
+		old_ref="Socks_${sid}"
+		uci -q rename nodepool.${sid}="${new_id}"
+		for item in $(uci show nodepool | grep "='${old_ref}'\$" | cut -d '=' -sf 1); do
+			uci -q set ${item}="${new_id}"
+		done
+		unset sid new_id old_ref item
+	fi
+done
+for sid in $(uci show nodepool | grep "@acl_rule" | cut -d '.' -sf 2 | cut -d '=' -sf 1); do
+	new_id="acl_$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 5)"
+	uci -q rename nodepool.${sid}="${new_id}"
+	unset sid new_id
+done
+for sid in $(uci show nodepool | grep "@subscribe_list" | cut -d '.' -sf 2 | cut -d '=' -sf 1); do
+	new_id="sub_$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 5)"
+	uci -q rename nodepool.${sid}="${new_id}"
+	unset sid new_id
+done
+
+uci -q commit nodepool
+
+sed -i "s#add_from#group#g" /etc/config/nodepool 2>/dev/null
+
+rm -f /tmp/luci-indexcache /tmp/luci-indexcache.*
+rm -rf /tmp/luci-modulecache/
+killall -HUP rpcd 2>/dev/null
+
+exit 0
