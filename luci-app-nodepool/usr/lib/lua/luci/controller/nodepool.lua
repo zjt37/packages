@@ -65,16 +65,7 @@ function index()
 	entry({"admin", "services", appname, "subscribe_manual_all"}, call("subscribe_manual_all")).leaf = true
 	entry({"admin", "services", appname, "flush_set"}, call("flush_set")).leaf = true
 
-	--[[Backup]]
-	entry({"admin", "services", appname, "create_backup"}, call("create_backup")).leaf = true
-	entry({"admin", "services", appname, "restore_backup"}, call("restore_backup")).leaf = true
-	entry({"admin", "services", appname, "reset_config"}, call("reset_config")).leaf = true
-
-	--[[geoview]]
-	entry({"admin", "services", appname, "geo_view"}, call("geo_view")).leaf = true
-
 	entry({"admin", "services", appname, "fetch_certsha256"}, call("fetch_certsha256")).leaf = true
-	entry({"admin", "services", appname, "gen_wireguard_key"}, call("gen_wireguard_key")).leaf = true
 end
 
 local function http_write_json(content)
@@ -90,15 +81,6 @@ end
 local function http_write_json_error(data)
 	http.prepare_content("application/json")
 	http.write(jsonStringify({code = 0, data = data}))
-end
-
-function reset_config()
-	uci:revert(c_config)
-	luci.sys.call('/etc/init.d/nodepool stop')
-	if luci.sys.call('[ -s "/usr/share/nodepool/0_default_config" ]') == 0 then
-		luci.sys.call('cp -f /usr/share/nodepool/0_default_config /etc/config/nodepool')
-	else
-	end
 end
 
 function show_menu()
@@ -506,165 +488,6 @@ function save_node_list_opt()
 end
 
 
-
-local backup_files = {
-    "/etc/config/nodepool",
-    "/usr/share/nodepool/rules/block_host",
-    "/usr/share/nodepool/rules/block_ip",
-    "/usr/share/nodepool/rules/direct_host",
-    "/usr/share/nodepool/rules/direct_ip",
-    "/usr/share/nodepool/rules/proxy_host",
-    "/usr/share/nodepool/rules/proxy_ip"
-}
-
-function create_backup()
-	local date = os.date("%y%m%d%H%M")
-	local tar_file = "/tmp/nodepool-" .. date .. "-backup.tar.gz"
-	fs.remove(tar_file)
-	local cmd = "tar -czf " .. tar_file .. " " .. table.concat(backup_files, " ")
-	luci.sys.call(cmd)
-	http.header("Content-Disposition", "attachment; filename=nodepool-" .. date .. "-backup.tar.gz")
-	http.header("X-Backup-Filename", "nodepool-" .. date .. "-backup.tar.gz")
-	http.prepare_content("application/octet-stream")
-	http.write(fs.readfile(tar_file))
-	fs.remove(tar_file)
-end
-
-function restore_backup()
-	local result = { status = "error", message = "unknown error" }
-	local ok, err = pcall(function()
-		local filename = http.formvalue("filename")
-		local chunk = http.formvalue("chunk")
-		local chunk_index = tonumber(http.formvalue("chunk_index") or "-1")
-		local total_chunks = tonumber(http.formvalue("total_chunks") or "-1")
-		if not filename then
-			result = { status = "error", message = "Missing filename" }
-			return
-		end
-		if not chunk then
-			result = { status = "error", message = "Missing chunk data" }
-			return
-		end
-		local file_path = "/tmp/" .. filename
-		local decoded = nixio.bin.b64decode(chunk)
-		if not decoded then
-			result = { status = "error", message = "Base64 decode failed" }
-			return
-		end
-		local fp = io.open(file_path, "a+")
-		if not fp then
-			result = { status = "error", message = "Failed to open file: " .. file_path }
-			return
-		end
-		fp:write(decoded)
-		fp:close()
-		if chunk_index + 1 == total_chunks then
-			uci:revert(c_config)
-			local temp_dir = '/tmp/nodepool_bak'
-			luci.sys.call("mkdir -p " .. temp_dir)
-			if luci.sys.call("tar -xzf " .. file_path .. " -C " .. temp_dir) == 0 then
-				for _, backup_file in ipairs(backup_files) do
-					local temp_file = temp_dir .. backup_file
-					if fs.access(temp_file) then
-						luci.sys.call("cp -f " .. temp_file .. " " .. backup_file)
-					end
-				end
-				luci.sys.call('/etc/init.d/nodepool restart > /dev/null 2>&1 &')
-				result = { status = "success", message = "Upload completed", path = file_path }
-			else
-				result = { status = "error", message = "Decompression failed" }
-			end
-			luci.sys.call("rm -rf " .. temp_dir)
-			fs.remove(file_path)
-		else
-			result = { status = "success", message = "Chunk received" }
-		end
-	end)
-	if not ok then
-		result = { status = "error", message = tostring(err) }
-	end
-	http_write_json(result)
-end
-
-function geo_view()
-	local action = http.formvalue("action")
-	local value = http.formvalue("value")
-	if not value or value == "" then
-		http.prepare_content("text/plain")
-		http.write(i18n.translate("Please enter query content!"))
-		return
-	end
-	local function get_rules(str, type)
-		local rules_id = {}
-		uci_foreach("shunt_rules", function(s)
-			local list
-			if type == "geoip" then list = s.ip_list else list = s.domain_list end
-			for line in string.gmatch((list or ""), "[^\r\n]+") do
-				if line ~= "" and not line:find("#") then
-					local prefix, main = line:match("^(.-):(.*)")
-					if not main then main = line end
-					if type == "geoip" and (api.datatypes.ipaddr(str) or api.datatypes.ip6addr(str)) then
-						if main:find(str, 1, true) then rules_id[#rules_id + 1] = s[".name"] end
-					else
-						if main == str then rules_id[#rules_id + 1] = s[".name"] end
-					end
-				end
-			end
-		end)
-		return rules_id
-	end
-	local geo_dir = (uci_get("@global_rules[0]", "v2ray_location_asset") or "/usr/share/v2ray/"):match("^(.*)/")
-	local geosite_path = geo_dir .. "/geosite.dat"
-	local geoip_path = geo_dir .. "/geoip.dat"
-	local geo_type, file_path, cmd
-	local geo_string = ""
-	local bin = api.finded_com("geoview")
-	if action == "lookup" then
-		if api.datatypes.ipaddr(value) or api.datatypes.ip6addr(value) then
-			geo_type, file_path = "geoip", geoip_path
-		else
-			geo_type, file_path = "geosite", geosite_path
-		end
-		cmd = string.format("%q -type %q -action lookup -input %q -value %q -lowmem=true", bin, geo_type, file_path, value)
-		geo_string = luci.sys.exec(cmd):lower()
-		if geo_string ~= "" then
-			local lines, rules, seen = {}, {}, {}
-			for line in geo_string:gmatch("([^\n]+)") do
-				lines[#lines + 1] = geo_type .. ":" .. line
-				for _, r in ipairs(get_rules(line, geo_type) or {}) do
-					if not seen[r] then seen[r] = true; rules[#rules + 1] = r end
-				end
-			end
-			for _, r in ipairs(get_rules(value, geo_type) or {}) do
-				if not seen[r] then seen[r] = true; rules[#rules + 1] = r end
-			end
-			geo_string = table.concat(lines, "\n")
-			if #rules > 0 then
-				geo_string = geo_string .. "\n--------------------\n"
-				geo_string = geo_string .. i18n.translate("Rules containing this value:") .. "\n"
-				geo_string = geo_string .. table.concat(rules, "\n")
-			end
-		end
-	elseif action == "extract" then
-		local prefix, list = value:match("^(geoip:)(.*)$")
-		if not prefix then
-			prefix, list = value:match("^(geosite:)(.*)$")
-		end
-		if prefix and list and list ~= "" then
-			geo_type = prefix:sub(1, -2)
-			file_path = (geo_type == "geoip") and geoip_path or geosite_path
-			cmd = string.format("%q -type %q -action extract -input %q -list %q -lowmem=true", bin, geo_type, file_path, list)
-			geo_string = luci.sys.exec(cmd)
-		end
-	end
-	http.prepare_content("text/plain")
-	if geo_string and geo_string ~="" then
-		http.write(geo_string)
-	else
-		http.write(i18n.translate("No results were found!"))
-	end
-end
-
 function subscribe_del_node()
 	local remark = http.formvalue("remark")
 	if remark and remark ~= "" then
@@ -764,11 +587,3 @@ function fetch_certsha256()
 	http_write_json(data ~= "" and { code = 1, data = data } or { code = 0 })
 end
 
-function gen_wireguard_key()
-	local key = api.gen_wireguard_key()
-	if key then
-		http_write_json_ok(key)
-	else
-		http_write_json_error()
-	end
-end
