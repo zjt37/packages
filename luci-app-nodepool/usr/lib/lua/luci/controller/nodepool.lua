@@ -28,14 +28,14 @@ function index()
 	entry({"admin", "services", appname, "hide"}, call("hide_menu")).leaf = true
 	local e
 	if api.uci_get_c("@global[0]", "hide_from_luci") ~= "1" then
-		e = entry({"admin", "services", appname}, alias("admin", "services", appname, "settings"), _("Node Pool"), -1)
+		e = entry({"admin", "services", appname}, alias("admin", "services", appname, "node_list"), _("Node Pool"), -1)
 	else
-		e = entry({"admin", "services", appname}, alias("admin", "services", appname, "settings"), nil, -1)
+		e = entry({"admin", "services", appname}, alias("admin", "services", appname, "node_list"), nil, -1)
 	end
 	e.dependent = true
 	e.acl_depends = { "luci-app-nodepool" }
 	--[[ Client ]]
-	entry({"admin", "services", appname, "settings"}, cbi(appname .. "/client/global"), _("Basic Settings"), 1).dependent = true
+	entry({"admin", "services", appname, "settings"}, cbi(appname .. "/client/settings"), _("Basic Settings"), 1).dependent = true
 	entry({"admin", "services", appname, "node_list"}, cbi(appname .. "/client/node_list"), _("Node List"), 2).dependent = true
 	entry({"admin", "services", appname, "node_subscribe"}, cbi(appname .. "/client/node_subscribe"), _("Node Subscribe"), 3).dependent = true
 	entry({"admin", "services", appname, "node_subscribe_config"}, cbi(appname .. "/client/node_subscribe_config")).leaf = true
@@ -48,9 +48,6 @@ function index()
 	entry({"admin", "services", appname, "socks_autoswitch_remove_node"}, call("socks_autoswitch_remove_node")).leaf = true
 	entry({"admin", "services", appname, "gen_client_config"}, call("gen_client_config")).leaf = true
 	entry({"admin", "services", appname, "get_now_use_node"}, call("get_now_use_node")).leaf = true
-	entry({"admin", "services", appname, "index_status"}, call("index_status")).leaf = true
-	entry({"admin", "services", appname, "socks_status"}, call("socks_status")).leaf = true
-	entry({"admin", "services", appname, "connect_status"}, call("connect_status")).leaf = true
 	entry({"admin", "services", appname, "ping_node"}, call("ping_node")).leaf = true
 	entry({"admin", "services", appname, "urltest_node"}, call("urltest_node")).leaf = true
 	entry({"admin", "services", appname, "update_config"}, call("update_config")).leaf = true
@@ -210,91 +207,6 @@ function get_now_use_node()
 	end
 	http_write_json(e)
 end
-
-
-
-
-
-
-function index_status()
-	local e = {}
-	local dns_shunt = uci_get("@global[0]", "dns_shunt") or "dnsmasq"
-	if dns_shunt == "smartdns" then
-		local port = api.get_cache_var("SMARTDNS_LOCAL_PORT") or 0
-		e.dns_mode_status = (port ~= 0) and luci.sys.call("netstat -apn | grep ':%s ' >/dev/null" % port) == 0 or false
-	elseif dns_shunt == "chinadns-ng" then
-		e.dns_mode_status = luci.sys.call("/bin/busybox top -bn1 | grep -v 'grep' | grep '%s/bin/' | grep 'default' | grep 'chinadns_ng' >/dev/null" % api.TMP_PATH) == 0
-	else
-		e.dns_mode_status = luci.sys.call("netstat -apn | grep ':15353 ' >/dev/null") == 0
-	end
-
-	e.haproxy_status = "-1"
-	if api.is_finded("haproxy") then
-		e.haproxy_status = (luci.sys.call("/bin/busybox top -bn1 | grep -v grep | grep '%s/bin/' | grep haproxy >/dev/null" % appname) == 0) and "0" or "1"
-	end
-
-	e["tcp_node_status"] = luci.sys.call("/bin/busybox top -bn1 | grep -v 'grep' | grep '%s/bin/' | grep 'default' | grep 'TCP' >/dev/null" % api.TMP_PATH) == 0
-
-	if (uci_get("@global[0]", "udp_node") or "nil") == "tcp" then
-		e["udp_node_status"] = e["tcp_node_status"]
-	else
-		e["udp_node_status"] = luci.sys.call("/bin/busybox top -bn1 | grep -v 'grep' | grep '%s/bin/' | grep 'default' | grep 'UDP' >/dev/null" % api.TMP_PATH) == 0
-	end
-	http_write_json(e)
-end
-
-function socks_status()
-	local e = {}
-	local index = http.formvalue("index")
-	local id = http.formvalue("id")
-	e.index = index
-	e.socks_status = luci.sys.call(string.format("/bin/busybox top -bn1 | grep -v -E 'grep|acl/|acl_' | grep '%s/bin/' | grep '/%s' > /dev/null", appname, id)) == 0
-	local use_http = uci_get(id, "http_port") or 0
-	e.use_http = 0
-	if tonumber(use_http) > 0 then
-		e.use_http = 1
-		e.http_status = luci.sys.call(string.format("/bin/busybox top -bn1 | grep -v -E 'grep|acl/|acl_' | grep '%s/bin/' | grep '/%s' | grep -E '\\+http|_http' > /dev/null", appname, id)) == 0
-	end
-	http_write_json(e)
-end
-
-function connect_status()
-	local e = {}
-	e.use_time = ""
-	local url = http.formvalue("url")
-	local aliyun = string.find(url, "aliyun")
-	local chn_list = uci_get("@global[0]", "chn_list") or "direct"
-	local gfw_list = uci_get("@global[0]", "use_gfw_list") or "1"
-	local proxy_mode = uci_get("@global[0]", "tcp_proxy_mode") or "proxy"
-	local localhost_proxy = uci_get("@global[0]", "localhost_proxy") or "1"
-	local socks_server = (localhost_proxy == "0") and api.get_cache_var("GLOBAL_TCP_SOCKS_server") or ""
-	url = "-w %{http_code}:%{time_pretransfer} " .. url
-	if socks_server and socks_server ~= "" then
-		if (chn_list == "proxy" and gfw_list == "0" and proxy_mode ~= "proxy" and aliyun ~= nil) or (chn_list == "0" and gfw_list == "0" and proxy_mode == "proxy") then
-		-- 中国列表+阿里 or 全局
-			url = "-x socks5h://" .. socks_server .. " " .. url
-		elseif aliyun == nil then
-		-- 其他代理模式+阿里以外网站
-			url = "-x socks5h://" .. socks_server .. " " .. url
-		end
-	end
-	local result = luci.sys.exec('/usr/bin/curl --connect-timeout 3 --max-time 5 -o /dev/null -I -sk ' .. url)
-	local code = tonumber(luci.sys.exec("echo -n '" .. result .. "' | awk -F ':' '{print $1}'") or "0")
-	if code ~= 0 then
-		local use_time_str = luci.sys.exec("echo -n '" .. result .. "' | awk -F ':' '{print $2}'")
-		local use_time = tonumber(use_time_str)
-		if use_time then
-			if use_time_str:find("%.") then
-				e.use_time = string.format("%.2f", use_time * 1000)
-			else
-				e.use_time = string.format("%.2f", use_time / 1000)
-			end
-			e.ping_type = "curl"
-		end
-	end
-	http_write_json(e)
-end
-
 function ping_node()
 	local index = http.formvalue("index")
 	local address = http.formvalue("address")
