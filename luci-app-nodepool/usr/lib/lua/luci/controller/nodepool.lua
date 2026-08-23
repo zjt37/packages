@@ -28,16 +28,16 @@ function index()
 	entry({"admin", "services", appname, "hide"}, call("hide_menu")).leaf = true
 	local e
 	if api.uci_get_c("@global[0]", "hide_from_luci") ~= "1" then
-		e = entry({"admin", "services", appname}, alias("admin", "services", appname, "node_list"), _("Node Pool"), -1)
+		e = entry({"admin", "services", appname}, alias("admin", "services", appname, "settings"), _("Node Pool"), -1)
 	else
-		e = entry({"admin", "services", appname}, alias("admin", "services", appname, "node_list"), nil, -1)
+		e = entry({"admin", "services", appname}, alias("admin", "services", appname, "settings"), nil, -1)
 	end
 	e.dependent = true
 	e.acl_depends = { "luci-app-nodepool" }
 	--[[ Client ]]
-	entry({"admin", "services", appname, "settings"}, cbi(appname .. "/client/settings"), _("Basic Settings"), 1).dependent = true
-	entry({"admin", "services", appname, "node_list"}, cbi(appname .. "/client/node_list"), _("Node List"), 2).dependent = true
-	entry({"admin", "services", appname, "node_subscribe"}, cbi(appname .. "/client/node_subscribe"), _("Node Subscribe"), 3).dependent = true
+	entry({"admin", "services", appname, "settings"}, cbi(appname .. "/client/settings"), "节点聚合", 1).dependent = true
+	entry({"admin", "services", appname, "node_list"}, cbi(appname .. "/client/node_list"), "节点列表", 2).dependent = true
+	entry({"admin", "services", appname, "node_subscribe"}, cbi(appname .. "/client/node_subscribe"), "节点订阅", 3).dependent = true
 	entry({"admin", "services", appname, "node_subscribe_config"}, cbi(appname .. "/client/node_subscribe_config")).leaf = true
 	entry({"admin", "services", appname, "node_config"}, cbi(appname .. "/client/node_config")).leaf = true
 	entry({"admin", "services", appname, "socks_config"}, cbi(appname .. "/client/socks_config")).leaf = true
@@ -423,7 +423,7 @@ function delete_select_nodes()
 	end)
 	if redirect == "1" then
 		uci_save()
-		http.redirect(api.url("node_list"))
+		http.redirect(api.url("settings"))
 	else
 		uci_save(true, true)
 	end

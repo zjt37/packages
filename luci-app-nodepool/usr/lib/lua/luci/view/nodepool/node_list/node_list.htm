@@ -1108,7 +1108,7 @@ table td, .table .td {
 			dom.style.display = 'block';
 			dom.innerHTML = '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;"><%:Processing, please wait…%></div>';
 			
-			const chunkSize = 1000;  // Fragmented sending to overcome uhttpd's limitations, with each fragment containing 1000 characters.
+			const chunkSize = 1000;
 			const totalChunks = Math.ceil(link.length / chunkSize);
 			let currentChunk = 0;
 
@@ -1233,20 +1233,6 @@ table td, .table .td {
 	//]]>
 </script>
 
-<div class="pw-toolbar">
-	<div class="pw-toolbar-field">
-		<input class="btn cbi-button cbi-button-add" type="button" onclick="node_action('add')" value="<%:Add%>" />
-		<input class="btn cbi-button cbi-button-add" type="button" onclick="add_link_div.open()" value="<%:Add the node via the link%>" />
-		<input class="btn cbi-button cbi-button-remove" type="button" onclick="node_action('del_all')" value="<%:Clear all nodes%>" />
-		<input class="btn cbi-button cbi-button-remove" type="button" onclick="delete_select_nodes()" value="<%:Delete select nodes%>" />
-		<input class="btn cbi-button cbi-button-edit" type="button" id="select_all_btn" onclick="checked_all_node(this)" value="<%:Select all%>" />
-		<input class="btn cbi-button cbi-button-edit" type="button" onclick="reassign_group_div.open()" value="<%:Reassign Group%>" />
-		<input class="btn cbi-button cbi-button-apply" type="submit" name="cbi.apply" value="<%:Save & Apply%>" />
-		<!--<input class="btn cbi-button cbi-button-save" type="submit" name="cbi.save" value="<%:Save%>" />-->
-		<!--<input class="btn cbi-button cbi-button-reset" type="button" value="<%:Reset%>" onclick="location.href='<%=REQUEST_URI%>'" />-->
-	</div>
-</div>
-
 <script type="text/template" id="nodes-table-template">
 	<<%=section_tag%> class="cbi-section cbi-tblsection" id="cbi-<%=appname%>-nodes-{{group}}-fieldset">
 		<table class="table cbi-section-table" id="cbi-<%=appname%>-nodes-{{group}}-table" style="">
@@ -1283,9 +1269,6 @@ table td, .table .td {
 		<td class="td cbi-value-field pw-urltest">{{url_test}}</td>
 		<td class="td cbi-section-table-cell nowrap cbi-section-actions pw-actions">
 			<div class="node-wrapper">
-				<input class="btn cbi-button cbi-button-edit" type="button" value="<%:To Top%>" onclick="node_action('row_top', null, {btn:this, group:'{{group}}'})" title="<%:To Top%>"/>
-				<input class="btn cbi-button cbi-button-apply" type="button" value="<%:Use%>" id="apply_{{id}}" onclick="set_node_div.open('{{id}}')"/>
-				<input class="btn cbi-button cbi-button-add" type="button" value="<%:Copy%>" onclick="node_action('copy', '{{id}}')"/>
 				<input class="btn cbi-button cbi-button-edit" type="button" value="<%:Edit%>" onclick="node_action('edit', '{{id}}')" alt="<%:Edit%>" title="<%:Edit%>">
 				<input class="btn cbi-button cbi-button-remove" type="button" value="<%:Delete%>" onclick="node_action('del', '{{id}}')" alt="<%:Delete%>" title="<%:Delete%>">
 				<span class="drag-handle center" title="<%:Drag to reorder%>">⠿</span>
@@ -1376,6 +1359,10 @@ table td, .table .td {
 				group_nodes[_node.group].push(_node)
 			}
 
+			if (Object.keys(group_nodes).length === 0) {
+				group_nodes["default"] = [];
+			}
+
 			var tab_ul_li_html = ''
 			var tab_content_html = ''
 			var nodes_table_template = document.getElementById("nodes-table-template");
@@ -1432,6 +1419,9 @@ table td, .table .td {
 						innerHTML = innerHTML.split("{{port_val}}").join(o["port"] || "");
 
 						node_tr_html += innerHTML
+					}
+					if (group_nodes[group].length === 0) {
+						node_tr_html = '<tr class="tr cbi-section-table-row cbi-rowstyle-1"><td class="td" colspan="6" style="text-align:center;padding:20px;">本分组暂无数据</td></tr>';
 					}
 					_html = _html.split("{{node-tr}}").join(node_tr_html);
 					table_html = _html;
