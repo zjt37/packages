@@ -1,0 +1,43 @@
+<%
+local map = self.map
+local api = map.api
+local uci = map.uci
+local enabled = uci:get("nodepool", "@global[0]", "aggregate_sub_enabled") or "0"
+local host = luci.http.getenv("HTTP_HOST") or luci.sys.exec("uci get network.lan.ipaddr"):gsub("\n","")
+-%>
+
+<h2>聚合</h2>
+<p>启用后自动生成聚合订阅文件，支持导入到 Clash、Sing-box、v2rayN 等客户端。</p>
+
+<div class="cbi-section">
+	<div class="cbi-value">
+		<label class="cbi-value-title">启用聚合</label>
+		<div class="cbi-value-field">
+			<input type="hidden" name="aggregate_sub_enabled" id="agg_hidden" value="<%=enabled%>" />
+			<input type="checkbox" id="agg_enable" <%= enabled == "1" and 'checked="checked"' or '' %> onclick="syncAgg(this)" />
+		</div>
+	</div>
+	<div class="cbi-value">
+		<label class="cbi-value-title">订阅地址</label>
+		<div class="cbi-value-field">
+			<input type="text" class="cbi-input-text" style="width:80%;min-width:200px;" id="agg_url" value="http://<%=host%>/nodepool_sub.txt" readonly />
+			<input type="button" class="btn cbi-button" value="复制" onclick="copyAggUrl()" />
+			<span id="agg_msg" style="margin-left:8px;font-size:12px;color:#888;"></span>
+		</div>
+	</div>
+</div>
+
+<script>
+function syncAgg(el) {
+	document.getElementById("agg_hidden").value = el.checked ? "1" : "0";
+}
+function copyAggUrl() {
+	var url = document.getElementById("agg_url");
+	url.select();
+	url.setSelectionRange(0, 99999);
+	document.execCommand("copy");
+	var msg = document.getElementById("agg_msg");
+	msg.textContent = "已复制!";
+	setTimeout(function() { msg.textContent = ""; }, 1500);
+}
+</script>

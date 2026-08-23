@@ -217,6 +217,7 @@ function update_config()
 			end
 			uci_save()
 			http_write_json_ok()
+			luci.sys.call("lua /usr/share/nodepool/gen_sub.lua >/dev/null 2>&1 &")
 			return
 		end
 	end
@@ -243,6 +244,7 @@ function add_node()
 		uci_save(true, true)
 		http_write_json({result = uid})
 	end
+	luci.sys.call("lua /usr/share/nodepool/gen_sub.lua >/dev/null 2>&1 &")
 end
 
 function delete_select_nodes()
@@ -337,11 +339,12 @@ function delete_select_nodes()
 		uci_del(w)
 	end)
 	if redirect == "1" then
-		uci_save()
+		uci:commit(c_config)
 		http.redirect(api.url("settings"))
 	else
 		uci_save(true, true)
 	end
+	luci.sys.call("lua /usr/share/nodepool/gen_sub.lua >/dev/null 2>&1 &")
 end
 
 function get_node()

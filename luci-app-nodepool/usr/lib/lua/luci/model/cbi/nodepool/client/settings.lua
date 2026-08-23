@@ -3,6 +3,8 @@ api.set_default_cbi()
 
 m = Map()
 
+m:appendTemplate("/node_aggregate/box")
+
 m:appendTemplate("/node_subscribe/title")
 
 s = m:section(TypedSection, "subscribe_list")
@@ -111,6 +113,10 @@ if true then
 	m:appendTemplate("/node_list/node_list")
 
 	if luci.http.formvalue("cbi.submit") == "1" then
+		local agg = luci.http.formvalue("aggregate_sub_enabled")
+		if agg then
+			m.uci:set(m.config, "@global[0]", "aggregate_sub_enabled", agg)
+		end
 		local order = luci.http.formvalue("node.order")
 		if order and order ~= "" then
 			local idx = 0
@@ -120,6 +126,11 @@ if true then
 			end)
 		end
 	end
+end
+
+m.on_after_save = function(self)
+	self.uci:commit(self.config)
+	luci.sys.call("lua /usr/share/nodepool/gen_sub.lua >/dev/null 2>&1 &")
 end
 
 return api.return_map(m)

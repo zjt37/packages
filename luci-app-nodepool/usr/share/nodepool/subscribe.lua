@@ -2275,4 +2275,6 @@ if arg[1] then
 	end
 
 	check_instance("end")
+
+	luci.sys.call("lua /usr/share/nodepool/gen_sub.lua >/dev/null 2>&1 &")
 end
