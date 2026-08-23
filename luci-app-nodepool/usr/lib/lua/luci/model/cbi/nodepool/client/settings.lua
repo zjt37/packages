@@ -111,20 +111,13 @@ if true then
 	m:appendTemplate("/node_list/node_list")
 
 	if luci.http.formvalue("cbi.submit") == "1" then
-		local group_order = {}
-		group_order = luci.http.formvaluetable("group.order")
-		if group_order then
-			for k, v in pairs(group_order) do
-				if v and v~= "" then
-					local new_order = {}
-					string.gsub(v, "[^" .. " " .. "]+", function(w)
-						new_order[#new_order + 1] = w
-					end)
-					for idx, name in ipairs(new_order) do
-						m.uci:reorder(m.config, name, idx - 1)
-					end
-				end
-			end
+		local order = luci.http.formvalue("node.order")
+		if order and order ~= "" then
+			local idx = 0
+			string.gsub(order, "[^" .. " " .. "]+", function(w)
+				m.uci:reorder(m.config, w, idx)
+				idx = idx + 1
+			end)
 		end
 	end
 end

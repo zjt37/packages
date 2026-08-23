@@ -198,12 +198,11 @@ table td, .table .td {
 		pointer-events: none;
 	}
 
-	body.modal-open #add_link_div,
-	body.modal-open #reassign_group_div {
+	body.modal-open #add_link_div {
 		pointer-events: auto;
 	}
 
-	#add_link_div, #reassign_group_div {
+	#add_link_div {
 		display: none;
 		position: fixed;
 		left: 50%;
@@ -218,7 +217,7 @@ table td, .table .td {
 		max-width: 500px;
 	}
 
-	#add_link_modal_container, #reassign_group_modal_container {
+	#add_link_modal_container {
 		width: 100%;
 		text-align: center;
 		display: flex;
@@ -237,8 +236,7 @@ table td, .table .td {
 		border-radius: 5px;
 	}
 
-	#add_link_div h3,
-	#reassign_group_div h3 {
+	#add_link_div h3 {
 		background: inherit;
 	}
 
@@ -250,7 +248,7 @@ table td, .table .td {
 		width: 100%;
 	}
 
-	#add_link_button_container, #reassign_group_button_container {
+	#add_link_button_container {
 		display: flex;
 		justify-content: space-between;
 		width: 100%;
@@ -266,152 +264,7 @@ table td, .table .td {
 		margin: 10px 0;
 		padding: 0px 5px 0px 5px;
 	}
-
-	.value-field-custom {
-		display: inline-flex;
-		align-items: center;
-		gap: 10px;
-	}
-
-	.value-title-custom {
-		font-size: 13px;
-		line-height: 28px;
-		white-space: nowrap;
-		text-align: right;
-	}
-
-	.custom-dropdown {
-		position: relative;
-		border: 1px solid #d9d9d9;
-		border-radius: 2px;
-		width: 180px;
-		height: 28px;
-		font-size: 13px;
-		background: #fff;
-		cursor: pointer;
-		box-sizing: border-box;
-		display: block;
-	}
-
-	.selected-display {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 0 8px;
-		width: 100%;
-		height: 100%;
-		box-sizing: border-box;
-		font-size: 12px;
-		color: #666;
-	}
-
-	.selected-display:hover {
-		background-color: #f7f7f7;
-	}
-
-	.dropdown-list {
-		position: absolute;
-		top: calc(100% + 2px);
-		left: -1px;
-		width: calc(100% + 2px);
-		border: 1px solid #d9d9d9;
-		border-radius: 2px;
-		border-top: none;
-		box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-		background: #fff;
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		max-height: 200px;
-		overflow-y: auto;
-		overflow-x: hidden;
-		z-index: 100;
-		box-sizing: border-box;
-		color: #666;
-	}
-
-	.dropdown-item {
-		padding: 4px 8px;
-		line-height: 20px;
-		cursor: pointer;
-	}
-
-	.dropdown-item.selected {
-		background-color: #1e90ff;
-		color: #fff;
-	}
-
-	.create-item-input::placeholder {
-		text-align: center;
-	}
-
-	.dropdown-item.custom-input input {
-		width: 100%;
-		box-sizing: border-box;
-		padding: 3px;
-		font-size: 13px;
-		line-height: 20px;
-		border: 1px solid #ccc;
-		text-align: left;
-	}
-
-	.arrow-down-small {
-		width: 0;
-		height: 0;
-		border-left: 4px solid transparent;
-		border-right: 4px solid transparent;
-		border-top: 5px solid #555;
-		display: inline-block;
-		vertical-align: middle;
-	}
 </style>
-
-<script type="text/javascript">
-<% if is_js_luci then -%>
-	var cbi_t = [];
-	function cbi_t_add(section, tab) {
-		var t = document.getElementById('tab.' + section + '.' + tab);
-		var c = document.getElementById('container.' + section + '.' + tab);
-
-		if( t && c ) {
-			cbi_t[section] = (cbi_t[section] || [ ]);
-			cbi_t[section][tab] = { 'tab': t, 'container': c, 'cid': c.id };
-		}
-	}
-
-	function cbi_t_switch(section, tab) {
-		if( cbi_t[section] && cbi_t[section][tab] ) {
-			//在切换选项卡之前，先取消当前激活选项卡的全选状态
-			dechecked_all_node();
-			var o = cbi_t[section][tab];
-			var h = document.getElementById('tab.' + section);
-			for( var tid in cbi_t[section] ) {
-				var o2 = cbi_t[section][tid];
-				if( o.tab.id != o2.tab.id ) {
-					o2.tab.className = o2.tab.className.replace(/(^| )cbi-tab( |$)/, " cbi-tab-disabled ");
-					o2.container.style.display = 'none';
-				}
-				else {
-					if(h) h.value = tab;
-					o2.tab.className = o2.tab.className.replace(/(^| )cbi-tab-disabled( |$)/, " cbi-tab ");
-					o2.container.style.display = 'block';
-				}
-			}
-		}
-		return false
-	}
-<%- else %>
-	(function() {
-		if (typeof(cbi_t_switch) === "function") {
-			var old_switch = cbi_t_switch;
-			cbi_t_switch = function(section, tab) {
-				dechecked_all_node();
-				return old_switch(section, tab);
-			};
-		}
-	})();
-<%- end %>
-</script>
 
 <script type="text/javascript">
 	//<![CDATA[
@@ -479,9 +332,7 @@ table td, .table .td {
 		ajax.abortAll();
 		switch (action) {
 			case "add":
-				const dom = document.getElementsByClassName("cbi-tab")[0];
-				const current_group = dom ? (dom.getAttribute("group_name") || "default") : "default";
-				window.location.href='<%=api.url("add_node")%>?redirect=1&group=' + current_group;
+				window.location.href='<%=api.url("add_node")%>?redirect=1';
 				break;
 			case "copy":
 				window.location.href = '<%=api.url("copy_node")%>' + "?section=" + cbi_id;
@@ -494,14 +345,13 @@ table td, .table .td {
 				break;
 			case "row_top":
 				let btn = a.btn;
-				let group = a.group;
 				const row = btn.closest("tr");
 				if (!row) return;
 				const parent = row.parentNode;
 				let firstDataRow = parent.querySelector("tr:not(.cbi-section-table-titles)");
 				if (firstDataRow && firstDataRow !== row) {
 					parent.insertBefore(row, firstDataRow);
-					set_order(group);
+					set_order();
 				}
 				break;
 			case "del_all":
@@ -521,7 +371,7 @@ table td, .table .td {
 	}
 
 	function set_select_all_state(sectionChecked) {
-		var visibleContainer = document.querySelector('#cbi-<%=appname%>-nodes > .cbi-tabcontainer[style*="display:block"], #cbi-<%=appname%>-nodes > .cbi-tabcontainer[style*="display: block"]');
+		var visibleContainer = document.getElementById("cbi-<%=appname%>-nodes");
 		if (!visibleContainer) return;
 		var nodes = visibleContainer.getElementsByClassName("nodes_select");
 		var selectAllChk = visibleContainer.querySelector(".nodes_select_all");
@@ -549,7 +399,7 @@ table td, .table .td {
 	}
 
 	function update_select_state() {
-		var visibleContainer = document.querySelector('#cbi-<%=appname%>-nodes > .cbi-tabcontainer[style*="display:block"], #cbi-<%=appname%>-nodes > .cbi-tabcontainer[style*="display: block"]');
+		var visibleContainer = document.getElementById("cbi-<%=appname%>-nodes");
 		if (!visibleContainer) return;
 		var nodes = visibleContainer.getElementsByClassName("nodes_select");
 		if (!nodes.length) return;
@@ -577,7 +427,7 @@ table td, .table .td {
 
 	function delete_select_nodes() {
 		var ids = [];
-		var visibleContainer = document.querySelector('#cbi-<%=appname%>-nodes > .cbi-tabcontainer[style*="display:block"], #cbi-<%=appname%>-nodes > .cbi-tabcontainer[style*="display: block"]');
+		var visibleContainer = document.getElementById("cbi-<%=appname%>-nodes");
 		if (!visibleContainer) return;
 		var doms = visibleContainer.getElementsByClassName("nodes_select");
 		if (doms && doms.length > 0) {
@@ -628,8 +478,8 @@ table td, .table .td {
 		return { address: address, port: port };
 	}
 
-	function get_node_order(group) {
-		let table = document.getElementById("cbi-<%=appname%>-nodes-" + group + "-table");
+	function get_node_order() {
+		let table = document.getElementById("cbi-<%=appname%>-nodes-table");
 		if (!table) {
 			return;
 		}
@@ -645,8 +495,8 @@ table td, .table .td {
 		return ids;
 	}
 
-	function set_order(group) {
-		let table = document.getElementById("cbi-<%=appname%>-nodes-" + group + "-table");
+	function set_order() {
+		let table = document.getElementById("cbi-<%=appname%>-nodes-table");
 		if (!table) {
 			alert("<%:No table!%>");
 			return;
@@ -661,7 +511,7 @@ table td, .table .td {
 			let id = row.id.replace("cbi-<%=appname%>-", "");
 			ids.push(id);
 		});
-		const input_order = document.getElementsByName(`group.order.${group}`)[0];
+		const input_order = document.getElementsByName(`node.order`)[0];
 		input_order.value = ids.join(" ");
 	}
 
@@ -903,7 +753,6 @@ table td, .table .td {
 	//列表拖动重排
 	function initSortableForTable(table) {
 		if (!table) return null;
-		let group = table.id.replace("cbi-<%=appname%>-nodes-", "").replace("-table", "")
 		var root = table.querySelector('tbody') || table;
 		if (root._sortable_initialized) return root._sortable_instance;
 		root._sortable_initialized = true;
@@ -916,7 +765,7 @@ table td, .table .td {
 			forceFallback: false,
 			swapThreshold: 0.65,
 			onEnd: function (evt) {
-				set_order(group);
+				set_order();
 			}
 		};
 		try {
@@ -930,7 +779,7 @@ table td, .table .td {
 		}
 	}
 
-	function initAllSortable(group_nodes) {
+	function initAllSortable() {
 		if (typeof Sortable === 'undefined') {
 			var retries = 0;
 			var maxRetries = 25;
@@ -938,125 +787,20 @@ table td, .table .td {
 				retries++;
 				if (typeof Sortable !== 'undefined') {
 					clearInterval(t);
-					for (var group in group_nodes) {
-						var table = document.getElementById("cbi-<%=appname%>-nodes-" + group + "-table");
-						initSortableForTable(table);
-					}
+					initSortableForTable(document.getElementById("cbi-<%=appname%>-nodes-table"));
 				} else if (retries >= maxRetries) {
 					clearInterval(t);
 				}
 			}, 200);
 		} else {
-			for (var group in group_nodes) {
-				var table = document.getElementById("cbi-<%=appname%>-nodes-" + group + "-table");
-				initSortableForTable(table);
-			}
+			initSortableForTable(document.getElementById("cbi-<%=appname%>-nodes-table"));
 		}
-	}
-
-	function escape_html(s) {
-		return s.replace(/[&<>"']/g, c => ({
-			"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
-		}[c]));
 	}
 </script>
 
 <script type="text/javascript">
 	//<![CDATA[
 	//Pop-up logic
-
-	// Custom group dropdown list events
-	function dropdown_list_fun(div_id) {
-		const dropdown = document.getElementById(div_id);
-		if (!dropdown) return;
-
-		const display = dropdown.querySelector(".selected-display");
-		const displayText = display.querySelector(".text");
-		const list = dropdown.querySelector(".dropdown-list");
-		const hidden = dropdown.querySelector('input[type="hidden"]');
-		const input = dropdown.querySelector(".create-item-input");
-
-		display.addEventListener("click", function() {
-			list.style.display = list.style.display === "none" ? "block" : "none";
-			input.value = "";
-			//input.focus();
-		});
-
-		function selectItem(li) {
-			list.querySelectorAll(".dropdown-item").forEach(function(el){
-				el.classList.remove("selected");
-			});
-			li.classList.add("selected");
-			hidden.value = li.dataset.value;
-			displayText.textContent = li.dataset.value || "<%:default%>";
-			list.style.display = "none";
-		}
-
-		list.addEventListener("click", function(e){
-			const li = e.target.closest(".dropdown-item");
-			if (!li || li.classList.contains("custom-input")) return;
-			selectItem(li);
-		});
-
-		input.addEventListener("keydown", function(e){
-			const isEnter = e.key === "Enter" || e.keyCode === 13;
-			if (!isEnter) return;
-			e.stopPropagation();
-			e.preventDefault();
-
-			const val = input.value.trim();
-			if (!val) return;
-
-			if (val.toLowerCase() === "default") {
-				const emptyLi = Array.from(list.querySelectorAll(".dropdown-item"))
-					.find(function(el){ return !el.dataset.value; });
-				if (emptyLi) selectItem(emptyLi);
-				input.value = "";
-				return;
-			}
-
-			let li = Array.from(list.querySelectorAll(".dropdown-item")).find(function(el){
-				return el.dataset.value && el.dataset.value.toLowerCase() === val.toLowerCase();
-			});
-			if (!li) {
-				li = document.createElement("li");
-				li.className = "dropdown-item";
-				li.dataset.value = val;
-				li.textContent = val;
-				list.insertBefore(li, input.parentNode); 
-			}
-
-			input.value = "";
-			selectItem(li);
-		});
-		// Read group names from tab
-		function InsertGroup(list, input) {
-			const tabs = document.querySelectorAll(".cbi-tabmenu li");
-			if (!tabs.length) {
-				setTimeout(() => InsertGroup(list, input), 50);
-				return;
-			}
-
-			tabs.forEach(function(li){
-				const group = li.id.split('.').pop();
-				if(group === "default") return;
-				if(Array.from(list.querySelectorAll(".dropdown-item")).some(el => el.dataset.value === group)) return;
-				const newLi = document.createElement("li");
-				newLi.className = "dropdown-item";
-				newLi.dataset.value = group;
-				newLi.textContent = group;
-				list.insertBefore(newLi, input.parentNode);
-			});
-		}
-		InsertGroup(list, input);
-
-		// Automatically collapses when clicking on the outside.
-		document.addEventListener("click", function(e) {
-			if (!dropdown.contains(e.target)) {
-				list.style.display = "none";
-			}
-		});
-	}
 
 	function getBg(el) {
 		if (!el) return null;
@@ -1075,10 +819,6 @@ table td, .table .td {
 			const addLinkDiv = document.getElementById("add_link_div");
 			addLinkDiv.style.background = getBg(document.querySelector('.cbi-section')) || getBg(document.body) || '';
 			addLinkDiv.style.display = "block";
-			if (!addLinkDiv._dropdown_inited) {
-				addLinkDiv._dropdown_inited = true;
-				dropdown_list_fun("addlink_group_custom");
-			}
 			document.getElementById("nodes_link").focus();
 		},
 		close() {
@@ -1088,14 +828,13 @@ table td, .table .td {
 		},
 		add_node() {
 			let nodes_link = document.getElementById("nodes_link").value;
-			const group = (document.querySelector('#addlink_group_custom input[type="hidden"]')?.value || "default");
 			nodes_link = nodes_link.replace(/\t/g, "").replace(/\r\n|\r/g, "\n").replace(/<[^>]*>/g, '').trim();
 			if (nodes_link != "") {
 				nodes_link = decodeIfBase64(nodes_link);
 				let s = nodes_link.split('://');
 				if (s.length > 1) {
 					this.close();
-					this.ajax_add_node(nodes_link, group);
+					this.ajax_add_node(nodes_link);
 				} else {
 					alert("<%:Please enter the correct link.%>");
 				}
@@ -1103,7 +842,7 @@ table td, .table .td {
 				document.getElementById("nodes_link").focus();
 			}
 		},
-		ajax_add_node(link, group) {
+		ajax_add_node(link) {
 			const dom = document.getElementById('modal-mask');
 			dom.style.display = 'block';
 			dom.innerHTML = '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;"><%:Processing, please wait…%></div>';
@@ -1138,79 +877,16 @@ table td, .table .td {
 					formData.append("chunk", chunk);
 					formData.append("chunk_index", currentChunk);
 					formData.append("total_chunks", totalChunks);
-					formData.append("group", group);
 					ajax.abortAll();
 					xhr.send(formData);
 				} else {
-					window.location.href = '<%=api.url("node_list")%>';
+					window.location.reload();
 				}
 			}
 			sendNextChunk();
 		}
 	}
 
-	const reassign_group_div = {
-		open() {
-			const ids = [];
-			const visibleContainer = document.querySelector('#cbi-nodepool-nodes > .cbi-tabcontainer[style*="display:block"], #cbi-nodepool-nodes > .cbi-tabcontainer[style*="display: block"]');
-			if (!visibleContainer) return;
-			const doms = visibleContainer.getElementsByClassName("nodes_select");
-			if (doms && doms.length > 0) {
-				for (let i = 0 ; i < doms.length; i++) {
-					if (doms[i].checked) {
-						ids.push(doms[i].getAttribute("cbid"))
-					}
-				}
-				if (ids.length > 0) {
-					document.body.classList.add('modal-open');
-					document.getElementById('modal-mask').style.display = 'block';
-					const reassignGroupDiv = document.getElementById("reassign_group_div");
-					reassignGroupDiv.style.background = getBg(document.querySelector('.cbi-section')) || getBg(document.body) || '';
-					reassignGroupDiv.style.display = "block";
-					if (!reassignGroupDiv._dropdown_inited) {
-						reassignGroupDiv._dropdown_inited = true;
-						dropdown_list_fun("reassign_group_custom");
-					}
-				} else {
-					alert("<%:You no select nodes !%>");
-				}
-			}
-		},
-		close() {
-			document.getElementById('modal-mask').style.display = 'none';
-			document.getElementById("reassign_group_div").style.display = "none";
-			document.body.classList.remove('modal-open');
-		},
-		action() {
-			const ids = [];
-			const group = (document.querySelector('#reassign_group_custom input[type="hidden"]')?.value || "default");
-			const visibleContainer = document.querySelector('#cbi-nodepool-nodes > .cbi-tabcontainer[style*="display:block"], #cbi-nodepool-nodes > .cbi-tabcontainer[style*="display: block"]');
-			if (!visibleContainer) return;
-			const doms = visibleContainer.getElementsByClassName("nodes_select");
-			if (doms && doms.length > 0) {
-				for (let i = 0 ; i < doms.length; i++) {
-					if (doms[i].checked) {
-						ids.push(doms[i].getAttribute("cbid"))
-					}
-				}
-				if (ids.length > 0) {
-					ajax.abortAll();
-					XHR.get('<%=api.url("reassign_group")%>', {
-						group: group,
-						ids: ids.join(",")
-					},
-					function(x, data) {
-						if (x && x.status == 200) {
-							window.location.href = '<%=api.url("node_list")%>';
-						} else {
-							alert("<%:Error%>");
-						}
-					});
-				}
-			}
-		}
-	}
-	
 	const set_node_div = {
 		section: '',
 		open(cbi_id) {
@@ -1234,8 +910,8 @@ table td, .table .td {
 </script>
 
 <script type="text/template" id="nodes-table-template">
-	<<%=section_tag%> class="cbi-section cbi-tblsection" id="cbi-<%=appname%>-nodes-{{group}}-fieldset">
-		<table class="table cbi-section-table" id="cbi-<%=appname%>-nodes-{{group}}-table" style="">
+	<<%=section_tag%> class="cbi-section cbi-tblsection" id="cbi-<%=appname%>-nodes-fieldset">
+		<table class="table cbi-section-table" id="cbi-<%=appname%>-nodes-table" style="">
 			<tr class="tr cbi-section-table-titles anonymous">
 				<th class="th cbi-section-table-cell" style="width:20px">
 					<input class="cbi-input-checkbox nodes_select_all" type="checkbox" onclick="checked_all_node(this)" title="<%:Select all%>"/>
@@ -1248,7 +924,7 @@ table td, .table .td {
 			</tr>
 			{{node-tr}}
 		</table>
-		<input type="hidden" name="group.order.{{group}}">
+		<input type="hidden" name="node.order">
 		<div class="cbi-section-create cbi-tblsection-create">
 			<input class="cbi-button cbi-button-add" type="button" value="<%:Add%>" onclick="node_action('add')">
 		</div>
@@ -1277,6 +953,8 @@ table td, .table .td {
 	</tr>
 </script>
 
+<h2>节点列表</h2>
+<p>显示所有已添加的节点，可拖动调整顺序，支持手动添加或通过链接批量导入。</p>
 <<%=section_tag%> class="cbi-section" id="node_list">
 </<%=section_tag%>>
 
@@ -1345,133 +1023,66 @@ table td, .table .td {
 
 	function loadNodeList() {
 		XHR.get('<%=api.url("get_node")%>', null, function(x, result) {
-			var node_list = result
+			var node_list = result || []
 
-			var group_nodes = {}
-			for (let i = 0; i < node_list.length; i++) {
-				let _node = node_list[i]
-				if (!_node.group || _node.group === "") {
-					_node.group = "default"
-				}
-				if (!group_nodes[_node.group]) {
-					group_nodes[_node.group] = []
-				}
-				group_nodes[_node.group].push(_node)
-			}
-
-			if (Object.keys(group_nodes).length === 0) {
-				group_nodes["default"] = [];
-			}
-
-			var tab_ul_li_html = ''
-			var tab_content_html = ''
 			var nodes_table_template = document.getElementById("nodes-table-template");
 			var node_template = document.getElementById("node-tr-template");
-			var default_group = null
-			for (let group in group_nodes) {
-				if (default_group == null)
-					default_group = group
 
-				var table_html = "";
-				if (true) {
-					//Node List
-					var new_nodes_table_dom = nodes_table_template.cloneNode(true);
-					var _html = new_nodes_table_dom.innerHTML;
-					_html = _html.split("{{group}}").join(group);
-					var node_tr_html = "";
-					for (var i = 0; i < group_nodes[group].length; i++) {
-						let o = group_nodes[group][i]
-						var newDom = node_template.cloneNode(true);
-						newDom.classList.add("cbi-rowstyle-" + (i % 2 + 1));
-						var innerHTML = newDom.innerHTML;
-						if (auto_detection_time != "icmp" && o["address"]) {
-							innerHTML = innerHTML.split("{{ping}}").join('<span class="ping"><a href="javascript:void(0)" onclick="javascript:ping_node(\'{{id}}\', this, \'icmp\')"><%:Test%></a></span>');
-						} else {
-							innerHTML = innerHTML.split("{{ping}}").join('<span class="ping_value" cbiid="{{id}}"><a href="javascript:void(0)" style="color:inherit">---</a></span>');
-						}
-						if (auto_detection_time != "tcping" && o["address"] && o["port"]) {
-							innerHTML = innerHTML.split("{{tcping}}").join('<span class="ping"><a href="javascript:void(0)" onclick="javascript:ping_node(\'{{id}}\', this, \'tcping\')"><%:Test%></a></span>');
-						} else {
-							innerHTML = innerHTML.split("{{tcping}}").join('<span class="tcping_value" cbiid="{{id}}"><a href="javascript:void(0)" style="color:inherit">---</a></span>');
-						}
-						let is_realm = (o.type === "Hysteria2" || o.protocol === 'hysteria2') && o.hysteria2_realms || false;
-						if (o["protocol"] === '_shunt' || is_realm) {
-							innerHTML = innerHTML.split("{{url_test}}").join('<span class="ping" cbiid="{{id}}">---</span>');
-						} else {
-							innerHTML = innerHTML.split("{{url_test}}").join('<span class="ping"><a href="javascript:void(0)" onclick="javascript:urltest_node(\'{{id}}\', this)" title="<%:TLS handshake test, latency for reference only%>"><%:Test%></a></span>');
-						}
-						innerHTML = innerHTML.split("{{id}}").join(o[".name"]);
-						innerHTML = innerHTML.split("{{group}}").join(o["group"] || "");
-						let node_remarks = get_remarks_name(o);
-						if (show_node_info == "1") {
-							let _port = o["port"] || o["hysteria_hop"] || o["hysteria2_hop"];
-							if (_port) _port = _port.replace(/:/g, '-');
-							if (o["address"] && _port) {
-								let _address = o["address"]
-								if (o["full_address"])
-									_address = o["full_address"]
-								node_remarks += "<br>" + _address + ":" + _port
-							}
-						}
-						innerHTML = innerHTML.split("{{remarks}}").join(node_remarks);
-						innerHTML = innerHTML.split("{{remarks_val}}").join(o["remarks"]);
-						innerHTML = innerHTML.split("{{address_val}}").join(o["address"] || "");
-						innerHTML = innerHTML.split("{{port_val}}").join(o["port"] || "");
-
-						node_tr_html += innerHTML
+			//Node List
+			var new_nodes_table_dom = nodes_table_template.cloneNode(true);
+			var _html = new_nodes_table_dom.innerHTML;
+			var node_tr_html = "";
+			for (var i = 0; i < node_list.length; i++) {
+				let o = node_list[i]
+				var newDom = node_template.cloneNode(true);
+				newDom.classList.add("cbi-rowstyle-" + (i % 2 + 1));
+				var innerHTML = newDom.innerHTML;
+				if (auto_detection_time != "icmp" && o["address"]) {
+					innerHTML = innerHTML.split("{{ping}}").join('<span class="ping"><a href="javascript:void(0)" onclick="javascript:ping_node(\'{{id}}\', this, \'icmp\')"><%:Test%></a></span>');
+				} else {
+					innerHTML = innerHTML.split("{{ping}}").join('<span class="ping_value" cbiid="{{id}}"><a href="javascript:void(0)" style="color:inherit">---</a></span>');
+				}
+				if (auto_detection_time != "tcping" && o["address"] && o["port"]) {
+					innerHTML = innerHTML.split("{{tcping}}").join('<span class="ping"><a href="javascript:void(0)" onclick="javascript:ping_node(\'{{id}}\', this, \'tcping\')"><%:Test%></a></span>');
+				} else {
+					innerHTML = innerHTML.split("{{tcping}}").join('<span class="tcping_value" cbiid="{{id}}"><a href="javascript:void(0)" style="color:inherit">---</a></span>');
+				}
+				let is_realm = (o.type === "Hysteria2" || o.protocol === 'hysteria2') && o.hysteria2_realms || false;
+				if (o["protocol"] === '_shunt' || is_realm) {
+					innerHTML = innerHTML.split("{{url_test}}").join('<span class="ping" cbiid="{{id}}">---</span>');
+				} else {
+					innerHTML = innerHTML.split("{{url_test}}").join('<span class="ping"><a href="javascript:void(0)" onclick="javascript:urltest_node(\'{{id}}\', this)" title="<%:TLS handshake test, latency for reference only%>"><%:Test%></a></span>');
+				}
+				innerHTML = innerHTML.split("{{id}}").join(o[".name"]);
+				let node_remarks = get_remarks_name(o);
+				if (show_node_info == "1") {
+					let _port = o["port"] || o["hysteria_hop"] || o["hysteria2_hop"];
+					if (_port) _port = _port.replace(/:/g, '-');
+					if (o["address"] && _port) {
+						let _address = o["address"]
+						if (o["full_address"])
+							_address = o["full_address"]
+						node_remarks += "<br>" + _address + ":" + _port
 					}
-					if (group_nodes[group].length === 0) {
-						node_tr_html = '<tr class="tr cbi-section-table-row cbi-rowstyle-1"><td class="td" colspan="6" style="text-align:center;padding:20px;">本分组暂无数据</td></tr>';
-					}
-					_html = _html.split("{{node-tr}}").join(node_tr_html);
-					table_html = _html;
 				}
+				innerHTML = innerHTML.split("{{remarks}}").join(node_remarks);
+				innerHTML = innerHTML.split("{{remarks_val}}").join(o["remarks"]);
+				innerHTML = innerHTML.split("{{address_val}}").join(o["address"] || "");
+				innerHTML = innerHTML.split("{{port_val}}").join(o["port"] || "");
 
-				var group_name = group
-				if (group === "default") {
-					group_name = "<%:default%>"
-				}
-
-				tab_ul_li_html +=
-					'<li group_name="' + group + '" id="tab.<%=appname%>.nodes.' + group + '" class="cbi-tab">' +
-						'<a onclick="this.blur(); return cbi_t_switch(\'<%=appname%>.nodes\', \'' + group + '\')" href="<%=REQUEST_URI%>?tab.<%=appname%>.nodes=' + group + '">' + escape_html(group_name) + " | " + "<font style='color: red'>" + group_nodes[group].length + '</font></a>' +
-					'</li>'
-				tab_content_html +=
-					'<div class="cbi-tabcontainer" id="container.<%=appname%>.nodes.' + group + '" style="display: none;">' +
-					'' + table_html +
-					'</div>'
+				node_tr_html += innerHTML
 			}
-
-			function addTabDOM(li, content) {
-				let tab_ul_html = '<ul class="cbi-tabmenu">';
-				let tab_content_html = '<<%=section_tag%> class="cbi-section-shunt_rule cbi-section-shunt_rule-tabbed" id="cbi-<%=appname%>-nodes">';
-				if (li) {
-					tab_ul_html += li;
-				}
-				if (content) {
-					tab_content_html += content;
-				}
-				tab_ul_html += '</ul>';
-				tab_content_html += '</<%=section_tag%>>';
-				return tab_ul_html + tab_content_html;
+			if (node_list.length === 0) {
+				node_tr_html = '<tr class="tr cbi-section-table-row cbi-rowstyle-1"><td class="td" colspan="6" style="text-align:center;padding:20px;">暂无数据</td></tr>';
 			}
+			_html = _html.split("{{node-tr}}").join(node_tr_html);
 
-			document.getElementById("node_list").innerHTML = addTabDOM(tab_ul_li_html, tab_content_html);
+			document.getElementById("node_list").innerHTML =
+				'<<%=section_tag%> class="cbi-section cbi-tblsection" id="cbi-<%=appname%>-nodes">' + _html + '</<%=section_tag%>>';
 
-			for (let group in group_nodes) {
-				cbi_t_add("<%=appname%>.nodes", group)
-			}
+			origin_node_order = get_node_order();
 
-			if (default_group) {
-				cbi_t_switch("<%=appname%>.nodes", default_group)
-			}
-
-			origin_group_node_order = {};
-			for (let group in group_nodes) {
-				origin_group_node_order[group] = get_node_order(group);
-			}
-
-			initAllSortable(group_nodes);
+			initAllSortable();
 
 			//clear expire data
 			if (localStorage && localStorage.length > 0) {
@@ -1553,55 +1164,9 @@ table td, .table .td {
 			<textarea id="nodes_link" rows="10"></textarea>
 			<p id="nodes_link_text"><%:Enter share links, one per line. Subscription links are not supported!%></p>
 		</div>
-		<div class="value-custom">
-			<div class="value-field-custom">
-				<label class="value-title-custom" for="addlink_group_custom"><%:Group Name%></label>
-				<div id="addlink_group_custom" class="custom-dropdown">
-					<div class="selected-display">
-						<span class="text"><%:default%></span>
-						<span class="arrow-down-small"></span>
-					</div>
-					<ul class="dropdown-list" style="display:none;">
-						<li class="dropdown-item selected" data-value=""><%:default%></li>
-						<li class="dropdown-item custom-input">
-							<input type="text" placeholder="-- <%:custom%> --" class="create-item-input" inputmode="text" enterkeyhint="done">
-						</li>
-					</ul>
-					<input type="hidden" name="addlink_group" value="">
-				</div>
-			</div>
-		</div>
 		<div id="add_link_button_container">
 			<input class="btn cbi-button cbi-button-add" type="button" onclick="add_link_div.add_node()" value="<%:Add%>" />
 			<input class="btn cbi-button cbi-button-remove" type="button" onclick="add_link_div.close()" value="<%:Close%>" />
-		</div>
-	</div>
-</div>
-
-<div id="reassign_group_div">
-	<div id="reassign_group_modal_container">
-		<h3><%:Reassign Node Group%></h3>
-		<div class="value-custom">
-			<div class="value-field-custom">
-				<label class="value-title-custom" for="reassign_group_custom"><%:Group Name%></label>
-				<div id="reassign_group_custom" class="custom-dropdown">
-					<div class="selected-display">
-						<span class="text"><%:default%></span>
-						<span class="arrow-down-small"></span>
-					</div>
-					<ul class="dropdown-list" style="display:none;">
-						<li class="dropdown-item selected" data-value=""><%:default%></li>
-						<li class="dropdown-item custom-input">
-							<input type="text" placeholder="-- <%:custom%> --" class="create-item-input" inputmode="text" enterkeyhint="done">
-						</li>
-					</ul>
-					<input type="hidden" name="to_group" value="">
-				</div>
-			</div>
-		</div>
-		<div id="reassign_group_button_container">
-			<input class="btn cbi-button cbi-button-edit" type="button" onclick="reassign_group_div.action()" value="<%:Save%>" />
-			<input class="btn cbi-button cbi-button-remove" type="button" onclick="reassign_group_div.close()" value="<%:Close%>" />
 		</div>
 	</div>
 </div>
