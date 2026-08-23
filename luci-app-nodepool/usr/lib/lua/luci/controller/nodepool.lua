@@ -42,7 +42,6 @@ function index()
 	if api.is_finded("haproxy") then
 		entry({"admin", "services", appname, "haproxy"}, cbi(appname .. "/client/haproxy"), _("Load Balancing"), 93).leaf = true
 	end
-	entry({"admin", "services", appname, "app_update"}, cbi(appname .. "/client/app_update"), _("App Update"), 95).leaf = true
 	entry({"admin", "services", appname, "node_subscribe_config"}, cbi(appname .. "/client/node_subscribe_config")).leaf = true
 	entry({"admin", "services", appname, "node_config"}, cbi(appname .. "/client/node_config")).leaf = true
 	entry({"admin", "services", appname, "socks_config"}, cbi(appname .. "/client/socks_config")).leaf = true
@@ -73,16 +72,6 @@ function index()
 	entry({"admin", "services", appname, "subscribe_manual"}, call("subscribe_manual")).leaf = true
 	entry({"admin", "services", appname, "subscribe_manual_all"}, call("subscribe_manual_all")).leaf = true
 	entry({"admin", "services", appname, "flush_set"}, call("flush_set")).leaf = true
-
-	--[[Components update]]
-	entry({"admin", "services", appname, "check_nodepool"}, call("app_check")).leaf = true
-	local coms = require "luci.nodepool.com"
-	local com
-	for _, com in ipairs(coms.order) do
-		entry({"admin", "services", appname, "check_" .. com}, call("com_check", com)).leaf = true
-		entry({"admin", "services", appname, "update_" .. com}, call("com_update", com)).leaf = true
-		entry({"admin", "services", appname, "version_" .. com}, call("com_version", com)).leaf = true
-	end
 
 	--[[Backup]]
 	entry({"admin", "services", appname, "create_backup"}, call("create_backup")).leaf = true
@@ -616,36 +605,6 @@ function save_node_list_opt()
 end
 
 
-
-
-function app_check()
-	local json = api.to_check_self()
-	http_write_json(json)
-end
-
-function com_check(comname)
-	local json = api.to_check("",comname)
-	http_write_json(json)
-end
-
-function com_update(comname)
-	local json = nil
-	local task = http.formvalue("task")
-	if task == "extract" then
-		json = api.to_extract(comname, http.formvalue("file"), http.formvalue("subfix"))
-	elseif task == "move" then
-		json = api.to_move(comname, http.formvalue("file"))
-	else
-		json = api.to_download(comname, http.formvalue("url"), http.formvalue("size"))
-	end
-
-	http_write_json(json)
-end
-
-function com_version(comname)
-	local version = api.get_app_version(comname)
-	http_write_json_ok(version)
-end
 
 local backup_files = {
     "/etc/config/nodepool",
