@@ -697,14 +697,6 @@ function s2.remove(e, t)
 	if (m:get("@global[0]", "udp_node") or "") == t then
 		m:set('@global[0]', "udp_node", new_node)
 	end
-	m:foreach("acl_rule", function(s)
-		if s["tcp_node"] and s["tcp_node"] == t then
-			m:set(s[".name"], "tcp_node", "default")
-		end
-		if s["udp_node"] and s["udp_node"] == t then
-			m:set(s[".name"], "udp_node", "default")
-		end
-	end)
 	m:foreach("nodes", function(s)
 		local list_name = s["urltest_node"] and "urltest_node" or (s["balancing_node"] and "balancing_node")
 		if list_name then

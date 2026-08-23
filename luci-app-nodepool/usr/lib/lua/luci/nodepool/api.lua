@@ -1,7 +1,6 @@
 module("luci.nodepool.api", package.seeall)
 appname = "nodepool"
 c_config = "nodepool"
-s_config = "nodepool_server"
 local com = require "luci.nodepool.com"
 nixio = require "nixio"
 fs = require "nixio.fs"
@@ -23,7 +22,6 @@ LOCK_PREFIX = "/tmp/lock/" .. c_config
 LOG_FILE = "/tmp/log/" .. c_config .. ".log"
 TMP_PATH = "/tmp/etc/" .. c_config
 CACHE_PATH = TMP_PATH .. "_tmp"
-S_TMP_PATH = "/tmp/etc/" .. s_config
 TMP_IFACE_PATH = TMP_PATH .. "/iface"
 
 function log(...)
@@ -94,26 +92,6 @@ end
 
 function uci_save_c(commit, apply)
 	return uci_save(uci, c_config, commit, apply)
-end
-
-function uci_del_s(section, option)
-	return uci_del(s_config, section, option)
-end
-
-function uci_foreach_s(stype, func)
-	uci:foreach(s_config, stype, func)
-end
-
-function uci_get_s(section, option)
-	return uci_get(s_config, section, option)
-end
-
-function uci_set_s(section, option, value)
-	return uci_set(s_config, section, option, value)
-end
-
-function uci_save_s(commit, apply)
-	return uci_save(uci, s_config, commit, apply)
 end
 
 function uci_save(cursor, config, commit, apply)
@@ -1541,7 +1519,7 @@ function luci_types(s, s2)
 	local type_name = s2.type_name
 	local option_prefix = s2.option_prefix
 	local fv_type
-	local field_type = s.fields["type"]
+	local field_type = s.fields and s.fields["type"]
 	if field_type then
 		fv_type = field_type:formvalue(id)
 	end

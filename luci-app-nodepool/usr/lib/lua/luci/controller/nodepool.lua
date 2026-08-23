@@ -49,17 +49,8 @@ function index()
 	entry({"admin", "services", appname, "node_config"}, cbi(appname .. "/client/node_config")).leaf = true
 	entry({"admin", "services", appname, "shunt_rules"}, cbi(appname .. "/client/shunt_rules")).leaf = true
 	entry({"admin", "services", appname, "socks_config"}, cbi(appname .. "/client/socks_config")).leaf = true
-	entry({"admin", "services", appname, "acl"}, cbi(appname .. "/client/acl"), _("Access control"), 98).leaf = true
-	entry({"admin", "services", appname, "acl_config"}, cbi(appname .. "/client/acl_config")).leaf = true
-
-	--[[ Server ]]
-	entry({"admin", "services", appname, "server"}, cbi(appname .. "/server/index"), _("Server-Side"), 99).leaf = true
-	entry({"admin", "services", appname, "server_config"}, cbi(appname .. "/server/server_config")).leaf = true
-	entry({"admin", "services", appname, "server_user_config"}, cbi(appname .. "/server/user_config")).leaf = true
 
 	--[[ API ]]
-	entry({"admin", "services", appname, "server_update_config"}, call("server_update_config")).leaf = true
-	entry({"admin", "services", appname, "server_status"}, call("server_status")).leaf = true
 	entry({"admin", "services", appname, "link_add_node"}, call("link_add_node")).leaf = true
 	entry({"admin", "services", appname, "socks_autoswitch_add_node"}, call("socks_autoswitch_add_node")).leaf = true
 	entry({"admin", "services", appname, "socks_autoswitch_remove_node"}, call("socks_autoswitch_remove_node")).leaf = true
@@ -465,10 +456,6 @@ function clear_all_nodes()
 	uci_foreach("haproxy_config", function(t)
 		uci_del(t[".name"])
 	end)
-	uci_foreach("acl_rule", function(t)
-		uci_del(t[".name"], "tcp_node")
-		uci_del(t[".name"], "udp_node")
-	end)
 	uci_foreach("nodes", function(node)
 		uci_del(node['.name'])
 	end)
@@ -518,14 +505,6 @@ function delete_select_nodes()
 		uci_foreach("haproxy_config", function(t)
 			if t["lbss"] == w then
 				uci_del(t[".name"])
-			end
-		end)
-		uci_foreach("acl_rule", function(t)
-			if t["tcp_node"] == w then
-				uci_del(t[".name"], "tcp_node")
-			end
-			if t["udp_node"] == w then
-				uci_del(t[".name"], "udp_node")
 			end
 		end)
 		uci_foreach("nodes", function(t)
@@ -675,30 +654,6 @@ function rollback_rules()
 	http_write_json_ok()
 end
 
-function server_update_config()
-	local id = http.formvalue("id") -- Node id
-	local data = http.formvalue("data") -- json new Data
-	if id and data then
-		local data_t = jsonParse(data) or {}
-		if next(data_t) then
-			for k, v in pairs(data_t) do
-				api.uci_set_s(id, k, v)
-			end
-			api.uci_save_s()
-			http_write_json_ok()
-			return
-		end
-	end
-	http_write_json_error()
-end
-
-function server_status()
-	local e = {}
-	e.index = http.formvalue("index")
-	e.status = luci.sys.call(string.format("/bin/busybox top -bn1 | grep -v 'grep' | grep '%s/bin/' | grep -i '%s' >/dev/null", appname .. "_server", http.formvalue("id"))) == 0
-	http_write_json(e)
-end
-
 
 
 
@@ -752,7 +707,6 @@ end
 
 local backup_files = {
     "/etc/config/nodepool",
-    "/etc/config/nodepool_server",
     "/usr/share/nodepool/rules/block_host",
     "/usr/share/nodepool/rules/block_ip",
     "/usr/share/nodepool/rules/direct_host",
@@ -814,7 +768,6 @@ function restore_backup()
 					end
 				end
 				luci.sys.call('/etc/init.d/nodepool restart > /dev/null 2>&1 &')
-				luci.sys.call('/etc/init.d/nodepool_server restart > /dev/null 2>&1 &')
 				result = { status = "success", message = "Upload completed", path = file_path }
 			else
 				result = { status = "error", message = "Decompression failed" }
