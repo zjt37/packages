@@ -1,0 +1,79 @@
+# 负载均衡模板：请求轮询分摊 + 会话保持，流媒体/Telegram 单独分流
+mixed-port: 7890
+allow-lan: false
+mode: rule
+log-level: info
+unified-delay: true
+
+dns:
+  enable: true
+  listen: 0.0.0.0:1053
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+
+proxies:
+__PROXIES__
+
+proxy-groups:
+  - name: 轮询负载
+    type: load-balance
+    strategy: round-robin
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    proxies:
+__PROXY_NAMES__
+  - name: 会话保持
+    type: load-balance
+    strategy: consistent-hashing
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    proxies:
+__PROXY_NAMES__
+  - name: 流媒体
+    type: select
+    proxies:
+      - 会话保持
+      - 轮询负载
+      - DIRECT
+  - name: Telegram
+    type: select
+    proxies:
+      - 会话保持
+      - 轮询负载
+  - name: 兜底
+    type: select
+    proxies:
+      - 轮询负载
+      - 会话保持
+
+rules:
+  # ===== 局域网 =====
+  - IP-CIDR,192.168.0.0/16,DIRECT,no-resolve
+  - IP-CIDR,10.0.0.0/8,DIRECT,no-resolve
+  # ===== Telegram（IP 段走会话保持，防风控）=====
+  - DOMAIN-SUFFIX,telegram.org,Telegram
+  - DOMAIN-SUFFIX,t.me,Telegram
+  - DOMAIN-SUFFIX,tdesktop.com,Telegram
+  - DOMAIN-SUFFIX,telesco.pe,Telegram
+  - IP-CIDR,91.108.4.0/22,Telegram,no-resolve
+  - IP-CIDR,91.108.8.0/22,Telegram,no-resolve
+  - IP-CIDR,91.108.12.0/22,Telegram,no-resolve
+  - IP-CIDR,91.108.16.0/22,Telegram,no-resolve
+  - IP-CIDR,91.108.20.0/22,Telegram,no-resolve
+  - IP-CIDR,149.154.160.0/20,Telegram,no-resolve
+  # ===== 流媒体（会话保持，同 IP 出口）=====
+  - DOMAIN-SUFFIX,youtube.com,流媒体
+  - DOMAIN-SUFFIX,googlevideo.com,流媒体
+  - DOMAIN-SUFFIX,netflix.com,流媒体
+  - DOMAIN-SUFFIX,nflxvideo.net,流媒体
+  - DOMAIN-SUFFIX,disneyplus.com,流媒体
+  - DOMAIN-SUFFIX,hulu.com,流媒体
+  - DOMAIN-SUFFIX,hbomax.com,流媒体
+  - DOMAIN-KEYWORD,netflix,流媒体
+  # ===== 国内直连 =====
+  - GEOIP,CN,DIRECT
+  # ===== 兜底：轮询分摊流量 =====
+  - MATCH,兜底

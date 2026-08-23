@@ -9,6 +9,7 @@ local uci = api.uci
 local enabled = uci:get("nodepool", "@global[0]", "aggregate_sub_enabled") or "0"
 if enabled ~= "1" then
 	os.remove("/www/nodepool_sub.txt")
+	os.remove("/www/nodepool_clash.yaml")
 	return
 end
 
@@ -253,6 +254,7 @@ local f = io.open("/www/nodepool_sub.txt", "w")
 if f then
 	f:write(encoded)
 	f:close()
+	os.execute("lua /usr/share/nodepool/gen_clash_sub.lua >/dev/null 2>&1")
 	print("OK: " .. #links .. " nodes exported to /www/nodepool_sub.txt")
 else
 	print("ERROR: cannot write /www/nodepool_sub.txt")

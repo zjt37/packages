@@ -1,0 +1,118 @@
+# 默认模板：日常均衡版（多分组分流，自动测速 + 国内直连）
+mixed-port: 7890
+socks-port: 7891
+allow-lan: false
+mode: rule
+log-level: info
+unified-delay: true
+tcp-concurrent: true
+
+dns:
+  enable: true
+  listen: 0.0.0.0:1053
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter:
+    - "*.lan"
+    - "*.local"
+    - "+.msftconnecttest.com"
+    - "+.msftncsi.com"
+  nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+  fallback:
+    - https://1.1.1.1/dns-query
+    - https://8.8.8.8/dns-query
+  fallback-filter:
+    geoip: true
+    geoip-code: CN
+
+proxies:
+__PROXIES__
+
+proxy-groups:
+  - name: 节点选择
+    type: select
+    proxies:
+      - 自动选择
+      - DIRECT
+__PROXY_NAMES__
+  - name: 自动选择
+    type: url-test
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    proxies:
+__PROXY_NAMES__
+  - name: 国外媒体
+    type: select
+    proxies:
+      - 节点选择
+      - 自动选择
+      - DIRECT
+  - name: AI服务
+    type: select
+    proxies:
+      - 节点选择
+      - 自动选择
+__PROXY_NAMES__
+  - name: 游戏加速
+    type: select
+    proxies:
+      - DIRECT
+      - 节点选择
+      - 自动选择
+  - name: 国内直连
+    type: select
+    proxies:
+      - DIRECT
+      - 节点选择
+
+rules:
+  # ===== 局域网/内网 =====
+  - IP-CIDR,127.0.0.0/8,DIRECT,no-resolve
+  - IP-CIDR,192.168.0.0/16,DIRECT,no-resolve
+  - IP-CIDR,10.0.0.0/8,DIRECT,no-resolve
+  - IP-CIDR,172.16.0.0/12,DIRECT,no-resolve
+  - DOMAIN-SUFFIX,lan,DIRECT
+  - DOMAIN-SUFFIX,local,DIRECT
+  # ===== AI 服务 =====
+  - DOMAIN-SUFFIX,openai.com,AI服务
+  - DOMAIN-SUFFIX,chatgpt.com,AI服务
+  - DOMAIN-SUFFIX,claude.ai,AI服务
+  - DOMAIN-SUFFIX,anthropic.com,AI服务
+  - DOMAIN-SUFFIX,gemini.google.com,AI服务
+  - DOMAIN-SUFFIX,copilot.microsoft.com,AI服务
+  - DOMAIN-SUFFIX,perplexity.ai,AI服务
+  # ===== 流媒体/社交 =====
+  - DOMAIN-SUFFIX,youtube.com,国外媒体
+  - DOMAIN-SUFFIX,ytimg.com,国外媒体
+  - DOMAIN-SUFFIX,googlevideo.com,国外媒体
+  - DOMAIN-SUFFIX,netflix.com,国外媒体
+  - DOMAIN-SUFFIX,nflxvideo.net,国外媒体
+  - DOMAIN-SUFFIX,spotify.com,国外媒体
+  - DOMAIN-SUFFIX,twitch.tv,国外媒体
+  - DOMAIN-SUFFIX,twitter.com,国外媒体
+  - DOMAIN-SUFFIX,x.com,国外媒体
+  - DOMAIN-SUFFIX,instagram.com,国外媒体
+  - DOMAIN-SUFFIX,facebook.com,国外媒体
+  - DOMAIN-KEYWORD,netflix,国外媒体
+  # ===== 游戏平台 =====
+  - DOMAIN-SUFFIX,steamcontent.com,游戏加速
+  - DOMAIN-SUFFIX,steamserver.net,游戏加速
+  - DOMAIN-SUFFIX,epicgames.com,游戏加速
+  - DOMAIN-SUFFIX,playstation.net,游戏加速
+  - DOMAIN-SUFFIX,xboxlive.com,游戏加速
+  - DOMAIN-SUFFIX,nintendo.net,游戏加速
+  # ===== 国内直连 =====
+  - DOMAIN-SUFFIX,baidu.com,国内直连
+  - DOMAIN-SUFFIX,bilibili.com,国内直连
+  - DOMAIN-SUFFIX,qq.com,国内直连
+  - DOMAIN-SUFFIX,taobao.com,国内直连
+  - DOMAIN-SUFFIX,jd.com,国内直连
+  - DOMAIN-SUFFIX,163.com,国内直连
+  - DOMAIN-SUFFIX,zhihu.com,国内直连
+  - DOMAIN-SUFFIX,douyin.com,国内直连
+  - GEOIP,CN,国内直连
+  # ===== 兜底 =====
+  - MATCH,节点选择

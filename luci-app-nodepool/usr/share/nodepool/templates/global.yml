@@ -1,0 +1,46 @@
+# 全局模板：仅本地/局域网直连，其余全部走节点（手动指定，不自动测速）
+mixed-port: 7890
+allow-lan: false
+mode: rule
+log-level: warning
+unified-delay: true
+
+dns:
+  enable: true
+  listen: 0.0.0.0:1053
+  enhanced-mode: redir-host
+  nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+
+proxies:
+__PROXIES__
+
+proxy-groups:
+  - name: 全局节点
+    type: select
+    proxies:
+      - DIRECT
+__PROXY_NAMES__
+  - name: 本地直连
+    type: select
+    proxies:
+      - DIRECT
+      - 全局节点
+
+rules:
+  # ===== 本地环回/局域网 =====
+  - IP-CIDR,127.0.0.0/8,DIRECT,no-resolve
+  - IP-CIDR,192.168.0.0/16,DIRECT,no-resolve
+  - IP-CIDR,10.0.0.0/8,DIRECT,no-resolve
+  - IP-CIDR,172.16.0.0/12,DIRECT,no-resolve
+  - IP-CIDR,100.64.0.0/10,DIRECT,no-resolve
+  - DOMAIN-SUFFIX,lan,DIRECT
+  - DOMAIN-SUFFIX,local,DIRECT
+  - DOMAIN-SUFFIX,router.local,DIRECT
+  # ===== 运营商/系统服务（可切换放行走代理）=====
+  - DOMAIN-SUFFIX,msftconnecttest.com,本地直连
+  - DOMAIN-SUFFIX,msftncsi.com,本地直连
+  - DOMAIN-KEYWORD,dns.msftncsi.com,本地直连
+  # ===== 其余全部走「全局节点」，在面板手动挑一个 =====
+  - MATCH,全局节点

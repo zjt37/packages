@@ -1,0 +1,73 @@
+<%
+local map = self.map
+local api = map.api
+local uci = map.uci
+local host = luci.http.getenv("HTTP_HOST") or luci.sys.exec("uci get network.lan.ipaddr"):gsub("\n","")
+
+local sel = uci:get("nodepool", "@global[0]", "clash_tpl") or ""
+local tpls = {}
+local ok, iter = pcall(nixio.fs.dir, "/usr/share/nodepool/templates")
+if ok and iter then
+	for f in iter do
+		if f:match("%.yml$") then tpls[#tpls + 1] = f end
+	end
+end
+table.sort(tpls)
+local valid = false
+for _, f in ipairs(tpls) do
+	if f == sel then valid = true; break end
+end
+if not valid and #tpls > 0 then sel = tpls[1] end
+-%>
+
+<h2>订阅转换工具</h2>
+<p>将聚合订阅一键转换为 Clash 订阅，节点变化后自动同步更新。<br />自建模板：把 .yml 文件放到路由器 /usr/share/nodepool/templates/ 目录即可在下拉中选择。</p>
+
+<div class="cbi-section">
+	<div class="cbi-value">
+		<label class="cbi-value-title">转换模板</label>
+		<div class="cbi-value-field">
+			<select id="clash_tpl" class="cbi-input-select" style="width:auto;min-width:200px;" onchange="setClashTpl(this.value)">
+				<% for _, f in ipairs(tpls) do %>
+				<option value="<%=f%>"<%= f == sel and ' selected="selected"' or '' %>><%=f:gsub("%.yml$", "")%></option>
+				<% end %>
+				<% if #tpls == 0 then %>
+				<option value="">（无可用模板）</option>
+				<% end %>
+			</select>
+			<span id="tpl_msg" style="margin-left:8px;font-size:12px;color:#888;"></span>
+		</div>
+	</div>
+	<div class="cbi-value">
+		<label class="cbi-value-title">Clash 订阅地址</label>
+		<div class="cbi-value-field">
+			<input type="text" class="cbi-input-text" style="width:80%;min-width:200px;" id="clash_url" value="http://<%=host%>/nodepool_clash.yaml" readonly />
+			<input type="button" class="btn cbi-button" value="复制" onclick="copyClashUrl()" />
+			<span id="clash_msg" style="margin-left:8px;font-size:12px;color:#888;"></span>
+		</div>
+	</div>
+</div>
+
+<script>
+function setClashTpl(v) {
+	if (!v) return;
+	XHR.get('<%=api.url("clash_set_tpl")%>', { tpl: v }, function(x, data) {
+		var msg = document.getElementById("tpl_msg");
+		if (x && x.status == 200 && data && data.code == 1) {
+			msg.textContent = "已切换并重新生成!";
+		} else {
+			msg.textContent = "保存失败";
+		}
+		setTimeout(function() { msg.textContent = ""; }, 1500);
+	});
+}
+function copyClashUrl() {
+	var url = document.getElementById("clash_url");
+	url.select();
+	url.setSelectionRange(0, 99999);
+	document.execCommand("copy");
+	var msg = document.getElementById("clash_msg");
+	msg.textContent = "已复制!";
+	setTimeout(function() { msg.textContent = ""; }, 1500);
+}
+</script>

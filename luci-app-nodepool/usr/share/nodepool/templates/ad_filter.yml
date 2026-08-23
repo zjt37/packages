@@ -1,0 +1,86 @@
+# 去广告模板：广告拦截组可一键放行/拦截，国内直连，其余自动测速
+mixed-port: 7890
+allow-lan: false
+mode: rule
+log-level: warning
+unified-delay: true
+tcp-concurrent: true
+
+dns:
+  enable: true
+  listen: 0.0.0.0:1053
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter:
+    - "*.lan"
+    - "*.local"
+  nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+  fallback:
+    - https://1.1.1.1/dns-query
+    - https://dns.google/dns-query
+
+proxies:
+__PROXIES__
+
+proxy-groups:
+  - name: 代理
+    type: select
+    proxies:
+      - 自动测速
+      - DIRECT
+__PROXY_NAMES__
+  - name: 自动测速
+    type: url-test
+    url: http://www.gstatic.com/generate_204
+    interval: 180
+    tolerance: 30
+    proxies:
+__PROXY_NAMES__
+  - name: 广告拦截
+    type: select
+    proxies:
+      - REJECT
+      - DIRECT
+      - 代理
+  - name: 隐私防护
+    type: select
+    proxies:
+      - REJECT
+      - DIRECT
+
+rules:
+  # ===== 广告联盟/推广（可在面板切 DIRECT 放行）=====
+  - DOMAIN-SUFFIX,doubleclick.net,广告拦截
+  - DOMAIN-SUFFIX,googleadservices.com,广告拦截
+  - DOMAIN-SUFFIX,googlesyndication.com,广告拦截
+  - DOMAIN-SUFFIX,googletagmanager.com,广告拦截
+  - DOMAIN-SUFFIX,google-analytics.com,广告拦截
+  - DOMAIN-SUFFIX,adnxs.com,广告拦截
+  - DOMAIN-SUFFIX,adsrvr.org,广告拦截
+  - DOMAIN-SUFFIX,casalemedia.com,广告拦截
+  - DOMAIN-SUFFIX,pubmatic.com,广告拦截
+  - DOMAIN-SUFFIX,rubiconproject.com,广告拦截
+  - DOMAIN-SUFFIX,taboola.com,广告拦截
+  - DOMAIN-SUFFIX,outbrain.com,广告拦截
+  - DOMAIN-SUFFIX,criteo.com,广告拦截
+  - DOMAIN-KEYWORD,adservice,广告拦截
+  - DOMAIN-KEYWORD,adsserver,广告拦截
+  # ===== 统计/埋点（隐私防护）=====
+  - DOMAIN-SUFFIX,umeng.com,隐私防护
+  - DOMAIN-SUFFIX,umengcloud.com,隐私防护
+  - DOMAIN-SUFFIX,appsflyer.com,隐私防护
+  - DOMAIN-SUFFIX,sensorsdata.cn,隐私防护
+  - DOMAIN-SUFFIX,growingio.com,隐私防护
+  - DOMAIN-SUFFIX,thinkingdata.cn,隐私防护
+  - DOMAIN-SUFFIX,bugly.qq.com,隐私防护
+  # ===== 国内直连 =====
+  - IP-CIDR,192.168.0.0/16,DIRECT,no-resolve
+  - IP-CIDR,10.0.0.0/8,DIRECT,no-resolve
+  - DOMAIN-SUFFIX,baidu.com,DIRECT
+  - DOMAIN-SUFFIX,qq.com,DIRECT
+  - DOMAIN-SUFFIX,bilibili.com,DIRECT
+  - GEOIP,CN,DIRECT
+  # ===== 兜底 =====
+  - MATCH,代理

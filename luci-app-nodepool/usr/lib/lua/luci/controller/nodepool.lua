@@ -34,11 +34,12 @@ function index()
 	e.acl_depends = { "luci-app-nodepool" }
 	--[[ Client ]]
 	entry({"admin", "services", appname, "settings"}, cbi(appname .. "/client/settings"), "节点聚合", 1).dependent = true
-	entry({"admin", "services", appname, "node_list"}, cbi(appname .. "/client/node_list"), "节点列表", 2).dependent = true
+	entry({"admin", "services", appname, "node_list"}, cbi(appname .. "/client/node_list"), "订阅转换", 2).dependent = true
 	entry({"admin", "services", appname, "node_subscribe"}, cbi(appname .. "/client/node_subscribe"), "节点订阅", 3).dependent = true
 	entry({"admin", "services", appname, "node_subscribe_config"}, cbi(appname .. "/client/node_subscribe_config")).leaf = true
 	entry({"admin", "services", appname, "node_config"}, cbi(appname .. "/client/node_config")).leaf = true
 	entry({"admin", "services", appname, "socks_config"}, cbi(appname .. "/client/socks_config")).leaf = true
+	entry({"admin", "services", appname, "clash_set_tpl"}, call("clash_set_tpl")).leaf = true
 
 	--[[ API ]]
 	entry({"admin", "services", appname, "link_add_node"}, call("link_add_node")).leaf = true
@@ -451,6 +452,18 @@ function subscribe_manual_all()
 	end
 	luci.sys.call("lua /usr/share/" .. appname .. "/subscribe.lua start all manual >/dev/null 2>&1 &")
 	http_write_json({ success = true, msg = "Subscribe triggered." })
+end
+
+function clash_set_tpl()
+	local tpl = http.formvalue("tpl") or ""
+	if tpl:match("^[^/\\]+%.yml$") and nixio.fs.access("/usr/share/nodepool/templates/" .. tpl) then
+		uci_set("@global[0]", "clash_tpl", tpl)
+		uci_save()
+		luci.sys.call("lua /usr/share/nodepool/gen_clash_sub.lua >/dev/null 2>&1")
+		http_write_json_ok({ tpl = tpl })
+	else
+		http_write_json_error()
+	end
 end
 
 function fetch_certsha256()
