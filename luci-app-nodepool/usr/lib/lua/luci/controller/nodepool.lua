@@ -24,8 +24,6 @@ function index()
 	local appname = api.appname		-- global definitions not available
 	local fs = api.fs
 	entry({"admin", "services", appname}).dependent = true
-	entry({"admin", "services", appname, "show"}, call("show_menu")).leaf = true
-	entry({"admin", "services", appname, "hide"}, call("hide_menu")).leaf = true
 	local e
 	if api.uci_get_c("@global[0]", "hide_from_luci") ~= "1" then
 		e = entry({"admin", "services", appname}, alias("admin", "services", appname, "settings"), _("Node Pool"), -1)
@@ -52,9 +50,6 @@ function index()
 	entry({"admin", "services", appname, "urltest_node"}, call("urltest_node")).leaf = true
 	entry({"admin", "services", appname, "update_config"}, call("update_config")).leaf = true
 	entry({"admin", "services", appname, "add_node"}, call("add_node")).leaf = true
-	entry({"admin", "services", appname, "set_node"}, call("set_node")).leaf = true
-	entry({"admin", "services", appname, "copy_node"}, call("copy_node")).leaf = true
-	entry({"admin", "services", appname, "clear_all_nodes"}, call("clear_all_nodes")).leaf = true
 	entry({"admin", "services", appname, "delete_select_nodes"}, call("delete_select_nodes")).leaf = true
 	entry({"admin", "services", appname, "get_node"}, call("get_node")).leaf = true
 	entry({"admin", "services", appname, "save_node_list_opt"}, call("save_node_list_opt")).leaf = true
@@ -62,7 +57,6 @@ function index()
 	entry({"admin", "services", appname, "subscribe_del_all"}, call("subscribe_del_all")).leaf = true
 	entry({"admin", "services", appname, "subscribe_manual"}, call("subscribe_manual")).leaf = true
 	entry({"admin", "services", appname, "subscribe_manual_all"}, call("subscribe_manual_all")).leaf = true
-	entry({"admin", "services", appname, "flush_set"}, call("flush_set")).leaf = true
 
 	entry({"admin", "services", appname, "fetch_certsha256"}, call("fetch_certsha256")).leaf = true
 end
@@ -82,27 +76,12 @@ local function http_write_json_error(data)
 	http.write(jsonStringify({code = 0, data = data}))
 end
 
-function show_menu()
-	api.sh_uci_del(c_config, "@global[0]", "hide_from_luci", true)
-	luci.sys.call("rm -rf /tmp/luci-*")
-	luci.sys.call("/etc/init.d/rpcd restart >/dev/null")
-	http.redirect(api.url())
-end
-
-function hide_menu()
-	api.sh_uci_set(c_config, "@global[0]", "hide_from_luci", "1", true)
-	luci.sys.call("rm -rf /tmp/luci-*")
-	luci.sys.call("/etc/init.d/rpcd restart >/dev/null")
-	http.redirect(luci.dispatcher.build_url("admin", "status", "overview"))
-end
-
 function link_add_node()
 	-- 分片接收以突破uhttpd的限制
 	local tmp_file = "/tmp/links.conf"
 	local chunk = http.formvalue("chunk")
 	local chunk_index = tonumber(http.formvalue("chunk_index"))
 	local total_chunks = tonumber(http.formvalue("total_chunks"))
-	local group = http.formvalue("group") or "default"
 
 	if chunk and chunk_index ~= nil and total_chunks ~= nil then
 		-- 按顺序拼接到文件
@@ -117,7 +96,7 @@ function link_add_node()
 		end
 		-- 如果是最后一片，才执行
 		if chunk_index + 1 == total_chunks then
-			luci.sys.call("lua /usr/share/nodepool/subscribe.lua add " .. group)
+			luci.sys.call("lua /usr/share/nodepool/subscribe.lua add default")
 		end
 	end
 end
@@ -264,69 +243,6 @@ function add_node()
 		uci_save(true, true)
 		http_write_json({result = uid})
 	end
-end
-
-function set_node()
-	local protocol = http.formvalue("protocol")
-	local section = http.formvalue("section")
-	uci_set("@global[0]", protocol .. "_node", section)
-	if protocol == "tcp" then
-		local node_protocol = uci_get(section, "protocol")
-		if node_protocol == "_shunt" then
-			local type = uci_get(section, "type")
-			local dns_shunt = uci_get("@global[0]", "dns_shunt")
-			local dns_key = (dns_shunt == "smartdns") and "smartdns_dns_mode" or "dns_mode"
-			local dns_mode = uci_get("@global[0]", dns_key)
-			local new_dns_mode = (type == "Xray") and "xray" or "sing-box"
-			if dns_mode ~= new_dns_mode then
-				uci_set("@global[0]", dns_key, new_dns_mode)
-				uci_set("@global[0]", "v2ray_dns_mode", "tcp")
-			end
-		end
-	end
-	uci_save(true, true)
-	http.redirect(api.url("settings"))
-end
-
-function copy_node()
-	local section = http.formvalue("section")
-	local uid = api.gen_random_char()
-	uci:section(c_config, "nodes", uid)
-	for k, v in pairs(uci_get(section)) do
-		if not k:match("^%.") and k ~= "group" then
-			if k == "remarks" then v = (v or "") .. "(1)" end
-			uci_set(uid, k, v)
-		end
-	end
-	uci_set(uid, "add_mode", 1)
-	uci_save()
-	http.redirect(api.url("node_config", uid))
-end
-
-function clear_all_nodes()
-	uci_set('@global[0]', "enabled", "0")
-	uci_set('@global[0]', "socks_enabled", "0")
-	uci_set('@global_haproxy[0]', "balancing_enable", "0")
-	uci_del('@global[0]', "tcp_node")
-	uci_del('@global[0]', "udp_node")
-	uci_foreach("socks", function(t)
-		uci_del(t[".name"])
-		uci_set(t[".name"], "autoswitch_backup_node", {})
-	end)
-	uci_foreach("haproxy_config", function(t)
-		uci_del(t[".name"])
-	end)
-	uci_foreach("nodes", function(node)
-		uci_del(node['.name'])
-	end)
-	uci_foreach("subscribe_list", function(t)
-		uci_del(t[".name"], "md5")
-		uci_del(t[".name"], "chain_proxy")
-		uci_del(t[".name"], "preproxy_node")
-		uci_del(t[".name"], "to_node")
-	end)
-
-	uci_save(true, true)
 end
 
 function delete_select_nodes()
@@ -532,20 +448,6 @@ function subscribe_manual_all()
 	end
 	luci.sys.call("lua /usr/share/" .. appname .. "/subscribe.lua start all manual >/dev/null 2>&1 &")
 	http_write_json({ success = true, msg = "Subscribe triggered." })
-end
-
-function flush_set()
-	local redirect = http.formvalue("redirect") or "0"
-	local reload = http.formvalue("reload") or "0"
-	if reload == "1" then
-		uci_set('@global[0]', "flush_set", "1")
-		uci_save(true, true)
-	else
-		api.sh_uci_set(c_config, "@global[0]", "flush_set", "1", true)
-	end
-	if redirect == "1" then
-		http.redirect(api.url("settings"))
-	end
 end
 
 function fetch_certsha256()

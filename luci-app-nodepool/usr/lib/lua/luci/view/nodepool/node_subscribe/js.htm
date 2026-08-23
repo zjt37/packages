@@ -56,7 +56,7 @@ local api = map.api
 			if (!data.success) {
 				alert(data.msg || "Operation failed");
 			} else {
-				window.location.href = '<%= api.url("log") %>'
+				location.reload();
 			}
 		});
 	}
@@ -105,7 +105,7 @@ local api = map.api
 			if (!data.success) {
 				alert(data.msg || "Operation failed");
 			} else {
-				window.location.href = '<%= api.url("log") %>'
+				location.reload();
 			}
 		});
 	}
