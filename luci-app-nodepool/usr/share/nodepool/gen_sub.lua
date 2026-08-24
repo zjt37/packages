@@ -30,8 +30,10 @@ local function build_transport_params(n, prefix)
 	local params = ""
 	local transport = n[prefix .. "transport"] or ""
 	if transport == "ws" then
-		if n[prefix .. "ws_host"] and n[prefix .. "ws_host"] ~= "" then
-			params = params .. "&host=" .. api.UrlEncode(n[prefix .. "ws_host"])
+		local ws_host = n[prefix .. "ws_host"]
+		if not ws_host or ws_host == "" then ws_host = n[prefix .. "address"] end
+		if ws_host and ws_host ~= "" then
+			params = params .. "&host=" .. api.UrlEncode(ws_host)
 		end
 		if n[prefix .. "ws_path"] and n[prefix .. "ws_path"] ~= "" then
 			local path = n[prefix .. "ws_path"]
@@ -179,7 +181,7 @@ local function build_share_link(n)
 		local info = { v="2", ps=remarks, add=address, port=port, id=n.uuid or "", aid="0", net=n.transport or "tcp", type="none", host="", path="", tls="", scy="" }
 		local transport = n.transport or "tcp"
 		if transport == "ws" then
-			info.host = n.ws_host or ""
+			info.host = n.ws_host or n.address or ""
 			local path = n.ws_path or ""
 			if n.ws_enableEarlyData == "1" and n.ws_maxEarlyData and n.ws_maxEarlyData ~= "" then path = path .. "?ed=" .. n.ws_maxEarlyData end
 			info.path = path
