@@ -431,8 +431,41 @@ if not tf then print("ERROR: cannot open " .. tpl_path); return end
 local out = tf:read("*a")
 tf:close()
 
-out = out:gsub("__PROXIES__", function() return table.concat(proxies, "\n") end)
-out = out:gsub("__PROXY_NAMES__", function() return table.concat(names_list, "\n") end)
+local proxies_block = table.concat(proxies, "\n")
+local names_block = table.concat(names_list, "\n")
+
+local function fill_template(out)
+	local lines = {}
+	local nodes_done, has_proxies_line = false, false
+	for line in (out .. "\n"):gmatch("(.-)\n") do
+		if line == "NODES" then
+			lines[#lines + 1] = proxies_block
+			nodes_done = true
+		elseif line == "NAMES" then
+			lines[#lines + 1] = names_block
+		else
+			if line:match("^proxies:%s*$") then has_proxies_line = true end
+			lines[#lines + 1] = line
+		end
+	end
+	if not nodes_done then
+		if has_proxies_line then
+			for i, l in ipairs(lines) do
+				if l:match("^proxies:%s*$") then
+					table.insert(lines, i + 1, proxies_block)
+					break
+				end
+			end
+		else
+			table.insert(lines, 1, "")
+			table.insert(lines, 1, proxies_block)
+			table.insert(lines, 1, "proxies:")
+		end
+	end
+	return table.concat(lines, "\n")
+end
+
+out = fill_template(out)
 
 local wf = io.open(DST, "w")
 if wf then

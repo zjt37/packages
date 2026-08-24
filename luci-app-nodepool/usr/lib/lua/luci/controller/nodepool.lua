@@ -35,11 +35,14 @@ function index()
 	--[[ Client ]]
 	entry({"admin", "services", appname, "settings"}, cbi(appname .. "/client/settings"), "节点聚合", 1).dependent = true
 	entry({"admin", "services", appname, "node_list"}, cbi(appname .. "/client/node_list"), "订阅转换", 2).dependent = true
-	entry({"admin", "services", appname, "node_subscribe"}, cbi(appname .. "/client/node_subscribe"), "节点订阅", 3).dependent = true
+	entry({"admin", "services", appname, "node_subscribe"}, cbi(appname .. "/client/node_subscribe"), "订阅模板", 3).dependent = true
 	entry({"admin", "services", appname, "node_subscribe_config"}, cbi(appname .. "/client/node_subscribe_config")).leaf = true
 	entry({"admin", "services", appname, "node_config"}, cbi(appname .. "/client/node_config")).leaf = true
 	entry({"admin", "services", appname, "socks_config"}, cbi(appname .. "/client/socks_config")).leaf = true
 	entry({"admin", "services", appname, "clash_set_tpl"}, call("clash_set_tpl")).leaf = true
+	entry({"admin", "services", appname, "tpl_get"}, call("tpl_get")).leaf = true
+	entry({"admin", "services", appname, "tpl_save"}, call("tpl_save")).leaf = true
+	entry({"admin", "services", appname, "tpl_del"}, call("tpl_del")).leaf = true
 
 	--[[ API ]]
 	entry({"admin", "services", appname, "link_add_node"}, call("link_add_node")).leaf = true
@@ -458,12 +461,84 @@ function clash_set_tpl()
 	local tpl = http.formvalue("tpl") or ""
 	if tpl:match("^[^/\\]+%.yml$") and nixio.fs.access("/usr/share/nodepool/templates/" .. tpl) then
 		uci_set("@global[0]", "clash_tpl", tpl)
-		uci_save()
+		uci:save(c_config)
+		uci:commit(c_config)
 		luci.sys.call("lua /usr/share/nodepool/gen_clash_sub.lua >/dev/null 2>&1")
 		http_write_json_ok({ tpl = tpl })
 	else
 		http_write_json_error()
 	end
+end
+
+local TPL_DIR = "/usr/share/nodepool/templates/"
+
+local function valid_tpl_name(name)
+	return name ~= "" and name:match("^[^/\\]+%.yml$") ~= nil
+end
+
+function tpl_get()
+	local name = http.formvalue("name") or ""
+	local content
+	if valid_tpl_name(name) and nixio.fs.access(TPL_DIR .. name) then
+		local f = io.open(TPL_DIR .. name, "r")
+		if f then
+			content = f:read("*a")
+			f:close()
+		end
+	end
+	if content then
+		http_write_json_ok({ name = name, content = content })
+	else
+		http_write_json_error()
+	end
+end
+
+function tpl_save()
+	local name = http.formvalue("name") or ""
+	local content = http.formvalue("content") or ""
+	if not valid_tpl_name(name) or #content > 512 * 1024 then
+		http_write_json_error()
+		return
+	end
+	nixio.fs.mkdirr(TPL_DIR)
+	local f = io.open(TPL_DIR .. name, "w")
+	if not f then
+		http_write_json_error()
+		return
+	end
+	f:write(content)
+	f:close()
+	if (uci_get("@global[0]", "clash_tpl") or "") == name then
+		luci.sys.call("lua /usr/share/nodepool/gen_clash_sub.lua >/dev/null 2>&1")
+	end
+	http_write_json_ok()
+end
+
+function tpl_del()
+	local name = http.formvalue("name") or ""
+	if not valid_tpl_name(name) or not nixio.fs.access(TPL_DIR .. name) then
+		http_write_json_error()
+		return
+	end
+	os.remove(TPL_DIR .. name)
+	if (uci_get("@global[0]", "clash_tpl") or "") == name then
+		local first = ""
+		local ok, iter = pcall(nixio.fs.dir, TPL_DIR)
+		if ok and iter then
+			for fn in iter do
+				if fn:match("%.yml$") and (first == "" or fn < first) then first = fn end
+			end
+		end
+		if first ~= "" then
+			uci_set("@global[0]", "clash_tpl", first)
+			uci:save(c_config)
+			uci:commit(c_config)
+			luci.sys.call("lua /usr/share/nodepool/gen_clash_sub.lua >/dev/null 2>&1")
+		else
+			os.remove("/www/nodepool_clash.yaml")
+		end
+	end
+	http_write_json_ok()
 end
 
 function fetch_certsha256()

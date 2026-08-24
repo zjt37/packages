@@ -1,0 +1,160 @@
+<%
+local map = self.map
+local api = map.api
+
+local tpls = {}
+local ok, iter = pcall(nixio.fs.dir, "/usr/share/nodepool/templates")
+if ok and iter then
+	for f in iter do
+		if f:match("%.yml$") then tpls[#tpls + 1] = f end
+	end
+end
+table.sort(tpls)
+-%>
+
+<h2>订阅模板管理</h2>
+<p>手动编辑 Clash 订阅模板（/usr/share/nodepool/templates/*.yml），保存后可在「订阅转换」页的下拉框中选择使用。<br />占位符可选：<b>NODES</b> = 节点列表注入点（不写则自动注入到 proxies: 下）；<b>NAMES</b> = 分组节点名注入点（不写可在分组用 include-all: true）。</p>
+
+<div class="cbi-section">
+	<div class="cbi-value">
+		<label class="cbi-value-title">选择模板</label>
+		<div class="cbi-value-field">
+			<select id="tpl_select" class="cbi-input-select" style="width:auto;min-width:200px;" onchange="loadTpl(this.value)">
+				<% for _, f in ipairs(tpls) do %>
+				<option value="<%=f%>"><%=f:gsub("%.yml$", "")%></option>
+				<% end %>
+			</select>
+			<input type="button" class="btn cbi-button cbi-button-apply" value="保存" onclick="saveTpl()" />
+			<input type="button" class="btn cbi-button cbi-button-remove" value="删除" onclick="delTpl()" />
+			<span id="tpl_msg" style="margin-left:8px;font-size:12px;color:#888;"></span>
+		</div>
+	</div>
+	<div style="margin-top:8px;">
+		<textarea id="tpl_content" rows="16" style="width:99%;font-family:monospace;font-size:14px;line-height:1.5;white-space:pre;" spellcheck="false"></textarea>
+	</div>
+	<div class="cbi-value">
+		<label class="cbi-value-title">新建模板</label>
+		<div class="cbi-value-field">
+			<input type="text" id="tpl_new_name" class="cbi-input-text" style="width:200px;" placeholder="新模板名（如 mytpl）" />
+			<input type="button" class="btn cbi-button cbi-button-add" value="新建模板" onclick="newTpl()" />
+		</div>
+	</div>
+</div>
+
+<script>
+	var TPL_GET = '<%=api.url("tpl_get")%>';
+	var TPL_SAVE = '<%=api.url("tpl_save")%>';
+	var TPL_DEL = '<%=api.url("tpl_del")%>';
+
+	function showMsg(text) {
+		var el = document.getElementById("tpl_msg");
+		el.textContent = text;
+		setTimeout(function() { el.textContent = ""; }, 2500);
+	}
+	function curName() {
+		return document.getElementById("tpl_select").value || "";
+	}
+	function loadTpl(name) {
+		if (!name) return;
+		XHR.get(TPL_GET, { name: name }, function(x, data) {
+			if (x && x.status == 200 && data && data.code == 1) {
+				document.getElementById("tpl_content").value = (data.data && data.data.content) || "";
+			} else {
+				showMsg("读取失败");
+			}
+		});
+	}
+	function postForm(url, params, cb) {
+		var parts = [];
+		for (var k in params) parts.push(encodeURIComponent(k) + "=" + encodeURIComponent(params[k]));
+		var xhr = new XMLHttpRequest();
+		xhr.open("POST", url, true);
+		xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+		xhr.onreadystatechange = function() {
+			if (xhr.readyState !== 4) return;
+			var data = null;
+			try { data = JSON.parse(xhr.responseText); } catch(e) {}
+			cb(xhr, data);
+		};
+		xhr.send(parts.join("&"));
+	}
+	function saveTpl() {
+		var name = curName();
+		if (!name) { showMsg("请先选择或新建模板"); return; }
+		postForm(TPL_SAVE, { name: name, content: document.getElementById("tpl_content").value }, function(x, data) {
+			if (x && x.status == 200 && data && data.code == 1) {
+				showMsg("已保存!");
+			} else {
+				showMsg((data && data.data && data.data.msg) ? data.data.msg : ("保存失败(HTTP " + (x ? x.status : "-") + ")"));
+			}
+		});
+	}
+	function newTpl() {
+		var v = document.getElementById("tpl_new_name").value.trim();
+		if (!v) { showMsg("请输入新模板名"); return; }
+		if (!/\.ya?ml$/i.test(v)) v += ".yml";
+		var s = document.getElementById("tpl_select");
+		for (var i = 0; i < s.options.length; i++) {
+			if (s.options[i].value.toLowerCase() == v.toLowerCase()) {
+				s.value = s.options[i].value;
+				loadTpl(s.value);
+				showMsg("模板已存在，已打开");
+				return;
+			}
+		}
+		var o = document.createElement("option");
+		o.value = v;
+		o.textContent = v.replace(/\.yml$/i, "");
+		s.appendChild(o);
+		s.value = v;
+		document.getElementById("tpl_content").value = [
+			"# 新模板",
+			"mixed-port: 7890",
+			"allow-lan: false",
+			"mode: rule",
+			"log-level: info",
+			"",
+			"proxies:",
+			"NODES",
+			"",
+			"proxy-groups:",
+			"  - name: PROXY",
+			"    type: select",
+			"    proxies:",
+			"      - DIRECT",
+			"NAMES",
+			"",
+			"rules:",
+			"  - GEOIP,CN,DIRECT",
+			"  - MATCH,PROXY",
+			""
+		].join("\\n");
+		showMsg("已创建（记得点保存）");
+	}
+	function delTpl() {
+		var name = curName();
+		if (!name) return;
+		if (!confirm("确定删除模板 " + name + " ？")) return;
+		XHR.post(TPL_DEL, { name: name }, function(x, data) {
+			if (x && x.status == 200 && data && data.code == 1) {
+				var s = document.getElementById("tpl_select");
+				for (var i = 0; i < s.options.length; i++) {
+					if (s.options[i].value == name) { s.remove(i); break; }
+				}
+				showMsg("已删除");
+				if (s.options.length) {
+					s.value = s.options[0].value;
+					loadTpl(s.value);
+				} else {
+					document.getElementById("tpl_content").value = "";
+				}
+			} else {
+				showMsg("删除失败");
+			}
+		});
+	}
+	(function() {
+		var s = document.getElementById("tpl_select");
+		if (s && s.value) loadTpl(s.value);
+	})();
+</script>

@@ -28,7 +28,7 @@ dns:
     geoip-code: CN
 
 proxies:
-__PROXIES__
+NODES
 
 proxy-groups:
   - name: 节点选择
@@ -36,14 +36,14 @@ proxy-groups:
     proxies:
       - 自动选择
       - DIRECT
-__PROXY_NAMES__
+NAMES
   - name: 自动选择
     type: url-test
     url: http://www.gstatic.com/generate_204
     interval: 300
     tolerance: 50
     proxies:
-__PROXY_NAMES__
+NAMES
   - name: 国外媒体
     type: select
     proxies:
@@ -55,7 +55,7 @@ __PROXY_NAMES__
     proxies:
       - 节点选择
       - 自动选择
-__PROXY_NAMES__
+NAMES
   - name: 游戏加速
     type: select
     proxies:
