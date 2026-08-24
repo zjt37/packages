@@ -82,4 +82,8 @@ end
 
 m:appendTemplate("/node_config/footer", {section = arg[1]})
 
+m.on_after_apply = function()
+	luci.sys.call("lua /usr/share/nodepool/gen_sub.lua && lua /usr/share/nodepool/gen_clash_sub.lua >/dev/null 2>&1 &")
+end
+
 return api.return_map(m)
