@@ -7,7 +7,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-nodepool
-PKG_VERSION:=26.8.19
+PKG_VERSION:=26.8.24
 PKG_RELEASE:=1
 PKG_PO_VERSION:=$(PKG_VERSION)
 
@@ -83,6 +83,11 @@ define Package/$(PKG_NAME)/postrm
 #!/bin/sh
 rm -f $${IPKG_INSTROOT}/usr/share/nodepool/rules/*.nft
 exit 0
+endef
+
+define Package/$(PKG_NAME)/install
+	$(INSTALL_DIR) $(1)
+	$(CP) $(CURDIR)/etc $(CURDIR)/usr $(CURDIR)/www $(1)/
 endef
 
 include $(TOPDIR)/feeds/luci/luci.mk
