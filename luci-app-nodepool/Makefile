@@ -8,8 +8,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-nodepool
 PKG_VERSION:=26.8.24
-PKG_RELEASE:=1
-PKG_PO_VERSION:=$(PKG_VERSION)
+PKG_RELEASE:=2
 
 PKG_CONFIG_DEPENDS:= \
 	CONFIG_PACKAGE_$(PKG_NAME)_Iptables_Transparent_Proxy \
@@ -17,12 +16,19 @@ PKG_CONFIG_DEPENDS:= \
 	CONFIG_PACKAGE_$(PKG_NAME)_INCLUDE_SingBox \
 	CONFIG_PACKAGE_$(PKG_NAME)_INCLUDE_Xray
 
-LUCI_TITLE:=LuCI support for NodePool
-LUCI_PKGARCH:=all
-LUCI_DEPENDS:=+coreutils +coreutils-base64 +coreutils-nohup +coreutils-timeout +curl \
+include $(INCLUDE_DIR)/package.mk
+
+define Package/$(PKG_NAME)
+  SECTION:=luci
+  CATEGORY:=LuCI
+  SUBMENU:=3. Applications
+  TITLE:=LuCI support for NodePool
+  DEPENDS:=+coreutils +coreutils-base64 +coreutils-nohup +coreutils-timeout +curl \
 	+chinadns-ng +dns2socks +dnsmasq-full +ip-full \
 	+libuci-lua +lua +luci-compat +luci-lib-jsonc \
 	+microsocks +resolveip +tcping +lyaml
+  PKGARCH:=all
+endef
 
 define Package/$(PKG_NAME)/config
 menu "Configuration"
@@ -85,11 +91,19 @@ rm -f $${IPKG_INSTROOT}/usr/share/nodepool/rules/*.nft
 exit 0
 endef
 
+define Build/Prepare
+	mkdir -p $(PKG_BUILD_DIR)
+endef
+
+define Build/Configure
+endef
+
+define Build/Compile
+endef
+
 define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)
 	$(CP) $(CURDIR)/etc $(CURDIR)/usr $(CURDIR)/www $(1)/
 endef
 
-include $(TOPDIR)/feeds/luci/luci.mk
-
-# call BuildPackage - OpenWrt buildroot signature
+$(eval $(call BuildPackage,$(PKG_NAME)))
