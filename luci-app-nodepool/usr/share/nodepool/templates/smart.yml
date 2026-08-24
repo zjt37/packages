@@ -1,31 +1,25 @@
+# port: 7890
+# socks-port: 7891
+# redir-port: 7892
+# tproxy-port: 7893
 mixed-port: 7890
-socks-port: 7891
-allow-lan: false
+allow-lan: true
+bind-address: "*"
 mode: rule
 log-level: info
-unified-delay: true
-tcp-concurrent: true
+external-controller: 127.0.0.1:9090
 
 dns:
   enable: true
-  listen: 0.0.0.0:1053
+  ipv6: false
   enhanced-mode: fake-ip
   fake-ip-range: 198.18.0.1/16
-  fake-ip-filter:
-    - .lan
-    - .local
-    - +.msftconnecttest.com
-    - +.msftncsi.com
-  nameserver:
+  default-nameserver:
     - 223.5.5.5
     - 119.29.29.29
-  fallback:
-    - https://1.1.1.1/dns-query
-    - https://8.8.8.8/dns-query
-  fallback-filter:
-    geoip: true
-    geoip-code: CN
-
+  nameserver:
+    - https://doh.pub/dns-query
+    - https://dns.alidns.com/dns-query
 proxies:
 NODES
 
