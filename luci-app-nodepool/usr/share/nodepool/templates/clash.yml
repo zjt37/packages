@@ -1,5 +1,4 @@
 mixed-port: 7890
-socks-port: 7891
 allow-lan: false
 mode: rule
 log-level: info
@@ -12,13 +11,13 @@ dns:
   enhanced-mode: fake-ip
   fake-ip-range: 198.18.0.1/16
   fake-ip-filter:
-    - .lan
-    - .local
-    - +.msftconnecttest.com
-    - +.msftncsi.com
+    - "*.lan"
+    - "*.local"
+    - "+.msftconnecttest.com"
+    - "+.msftncsi.com"
   nameserver:
-    - 223.5.5.5
-    - 119.29.29.29
+    - https://223.5.5.5/dns-query
+    - https://doh.pub/dns-query
   fallback:
     - https://1.1.1.1/dns-query
     - https://8.8.8.8/dns-query
@@ -33,97 +32,66 @@ proxy-groups:
   - name: 国外
     type: select
     proxies:
-      - 智能选择
+      - 自动选择
 NAMES
   - name: opencode
     type: select
     proxies:
-      - 台港新智能
+      - 台港新自动
+      - 其他自动
 NAMES
   - name: AI
     type: select
     proxies:
-      - 台新智能
+      - 台新自动
+      - 其他自动
 NAMES
   - name: TikTok
     type: select
     proxies:
-      - 港新智能
+      - 港新自动
+      - 其他自动
 NAMES
-  - name: 智能选择
-    type: smart
+  - name: 自动选择
+    type: url-test
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    proxies:
+NAMES
+  - name: 台港新自动
+    type: url-test
     include-all: true
-    policy-priority: ""
-    uselightgbm: true
-    collectdata: true
-    strategy: sticky-sessions
-    health-check:
-      enable: true
-      url: https://www.gstatic.com/generate_204
-      interval: 60
-      tolerance: 2
-    interval: 180
-  - name: 台港新智能
-    type: smart
+    tolerance: 50
+    interval: 300
+    url: http://www.gstatic.com/generate_204
+    filter: "(?=.*(香港|HK|Hong ?Kong|台湾|TW|Taiwan|新加坡|SG|Singapore|加坡)).*$"
+  - name: 台新自动
+    type: url-test
     include-all: true
-    policy-priority: ""
-    uselightgbm: true
-    collectdata: true
-    strategy: sticky-sessions
-    health-check:
-      enable: true
-      url: https://www.gstatic.com/generate_204
-      interval: 60
-      tolerance: 2
-    interval: 180
-    filter: "(?=.*(香港|HK|Hong ?Kong|台湾|TW|Taiwan|新加坡|SG|Singapore)).*$"
-  - name: 台新智能
-    type: smart
+    tolerance: 50
+    interval: 300
+    url: http://www.gstatic.com/generate_204
+    filter: "(?=.*(台湾|TW|Taiwan|新加坡|SG|Singapore|加坡)).*$"
+  - name: 港新自动
+    type: url-test
     include-all: true
-    policy-priority: ""
-    uselightgbm: true
-    collectdata: true
-    strategy: sticky-sessions
-    health-check:
-      enable: true
-      url: https://www.gstatic.com/generate_204
-      interval: 60
-      tolerance: 2
-    interval: 180
-    filter: "(?=.*(台湾|TW|Taiwan|新加坡|SG|Singapore)).*$"
-  - name: 港新智能
-    type: smart
+    tolerance: 50
+    interval: 300
+    url: http://www.gstatic.com/generate_204
+    filter: "(?=.*(香港|HK|Hong ?Kong|新加坡|SG|Singapore|加坡)).*$"
+  - name: 其他自动
+    type: url-test
     include-all: true
-    policy-priority: ""
-    uselightgbm: true
-    collectdata: true
-    strategy: sticky-sessions
-    health-check:
-      enable: true
-      url: https://www.gstatic.com/generate_204
-      interval: 60
-      tolerance: 2
-    interval: 180
-    filter: "(?=.*(香港|HK|Hong ?Kong|新加坡|SG|Singapore)).*$"
-  - name: 其他智能
-    type: smart
-    include-all: true
-    policy-priority: ""
-    uselightgbm: true
-    collectdata: true
-    strategy: sticky-sessions
-    health-check:
-      enable: true
-      url: https://www.gstatic.com/generate_204
-      interval: 60
-      tolerance: 2
-    interval: 180
-    filter: "^((?!(香港|HK|Hong ?Kong|台湾|TW|Taiwan|新加坡|SG|Singapore)).)*$"
+    exclude-filter: "香港|HK|Hong ?Kong|台湾|TW|Taiwan|新加坡|SG|Singapore|加坡"
+    tolerance: 50
+    interval: 300
+    url: http://www.gstatic.com/generate_204
+NAMES
   - name: 国内
     type: select
     proxies:
       - DIRECT
-
 rules:
   # 国外
   - DOMAIN-SUFFIX,akamaized.net,国外
