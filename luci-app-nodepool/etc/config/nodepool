@@ -1,4 +1,3 @@
-
 config global
 	option enabled '0'
 	option socks_enabled '0'
@@ -21,7 +20,9 @@ config global
 	option localhost_proxy '1'
 	option client_proxy '1'
 	option acl_enable '0'
-	option timestamp '1787382147'
+	option timestamp '1787552696'
+	option aggregate_sub_enabled '1'
+	option clash_tpl 'smart.yml'
 
 config global_haproxy
 	option balancing_enable '0'
