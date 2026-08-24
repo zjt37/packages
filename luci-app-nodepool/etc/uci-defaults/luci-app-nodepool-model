@@ -1,0 +1,5 @@
+#!/bin/sh
+if [ -d /etc/openclash ] && [ ! -s /etc/openclash/Model.bin ]; then
+	cp -f /usr/share/nodepool/Model.bin /etc/openclash/Model.bin
+fi
+exit 0
