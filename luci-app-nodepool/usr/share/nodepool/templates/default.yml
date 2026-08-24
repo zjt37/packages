@@ -35,6 +35,9 @@ proxy-groups:
     type: select
     proxies:
       - 自动选择
+      - 香港自动
+      - 台湾自动
+      - 新加坡自动
       - DIRECT
 NAMES
   - name: 自动选择
@@ -44,6 +47,28 @@ NAMES
     tolerance: 50
     proxies:
 NAMES
+  # 地区自动分组：按关键字过滤全部节点，自动选该地区最快节点
+  - name: 香港自动
+    type: url-test
+    include-all: true
+    tolerance: 50
+    interval: 300
+    url: http://www.gstatic.com/generate_204
+    filter: "(?=.*(香港|HK|Hong ?Kong)).*$"
+  - name: 台湾自动
+    type: url-test
+    include-all: true
+    tolerance: 50
+    interval: 300
+    url: http://www.gstatic.com/generate_204
+    filter: "(?=.*(台湾|TW|Taiwan)).*$"
+  - name: 新加坡自动
+    type: url-test
+    include-all: true
+    tolerance: 50
+    interval: 300
+    url: http://www.gstatic.com/generate_204
+    filter: "(?=.*(新加坡|狮城|SG|Singapore)).*$"
   - name: 国外媒体
     type: select
     proxies:
