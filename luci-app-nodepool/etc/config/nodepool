@@ -217,6 +217,3 @@ config shunt_rules 'Direct'
 geoip:cn
 geoip:private'
 
-config nodes 'lZ6RJJ8A'
-	option type 'Socks'
-
