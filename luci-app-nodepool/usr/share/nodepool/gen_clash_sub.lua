@@ -5,6 +5,7 @@ package.path = "/usr/lib/lua/?.lua;/usr/lib/lua/?/init.lua;" .. package.path
 package.cpath = "/usr/lib/lua/?.so;" .. package.cpath
 
 local api = require "luci.nodepool.api"
+local jsonc = require "luci.jsonc"
 
 local SRC = "/www/nodepool_sub.txt"
 local DST = "/www/nodepool_clash.yaml"
@@ -258,7 +259,7 @@ local function h_ssr(link)
 end
 
 local function h_vmess(link)
-	local ok, info = pcall(luci.jsonc.parse, api.base64Decode(link:gsub("^vmess://", "", 1)))
+	local ok, info = pcall(jsonc.parse, api.base64Decode(link:gsub("^vmess://", "", 1)))
 	if not ok or type(info) ~= "table" then return end
 	local server = info.add or ""
 	local port = tonumber(info.port) or 0
