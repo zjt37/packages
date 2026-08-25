@@ -12,6 +12,12 @@ function m.on_before_save(self)
 	self:del(arg[1], "md5")
 end
 
+m.apply_on_parse = true
+
+m.on_after_apply = function()
+	luci.sys.call("lua /usr/share/nodepool/subscribe.lua start " .. arg[1] .. " manual >/dev/null 2>&1 &")
+end
+
 m:appendTemplate("/cbi/nodes_listvalue_com")
 
 local has_ss_rust = api.is_finded("sslocal")
