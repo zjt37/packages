@@ -1078,8 +1078,6 @@ start_crontab() {
 
 	if [ -f "${LOCK_PATH}/${CONFIG}_cron.lock" ]; then
 		rm -f "${LOCK_PATH}/${CONFIG}_cron.lock"
-		
-		return
 	fi
 
 	clean_crontab
