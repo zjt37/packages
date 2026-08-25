@@ -57,17 +57,17 @@ check_run_environment() {
 			nftflag=1
 			local v_num=$(echo "$dnsmasq_ver" | tr -cd '0-9')
 			if [ "${v_num:-0}" -lt 292 ]; then
-				
+				echolog "提示：nftables 模式下 dnsmasq 版本需大于等于 2.92，当前版本可能无法正常分流，建议升级！"
 			fi
 		fi
 		local pkg
 		for pkg in $dep_list; do
 			if [ ! -s "${file_path}/${pkg}${file_ext}" ]; then
-				
+				echolog "提示：依赖的内核组件${pkg}未安装，可能无法正常代理！"
 			fi
 		done
 	else
-		
+		:
 	fi
 }
 
@@ -602,7 +602,7 @@ run_redir() {
 				local geoip_path="${V2RAY_LOCATION_ASSET%*/}/geoip.dat"
 				local geosite_path="${V2RAY_LOCATION_ASSET%*/}/geosite.dat"
 				if [ ! -s "$geoip_path" ] || [ ! -s "$geosite_path" ]; then
-					
+					echolog "提示：系统缺少 Geoip.dat 或 Geosite.dat 数据文件，请先在【规则更新】中更新！"
 				fi
 			}
 			run_singbox flag=UDP node=$node udp_redir_port=$local_port config_file=$config_file log_file=$log_file
@@ -613,7 +613,7 @@ run_redir() {
 				local geoip_path="${V2RAY_LOCATION_ASSET%*/}/geoip.dat"
 				local geosite_path="${V2RAY_LOCATION_ASSET%*/}/geosite.dat"
 				if [ ! -s "$geoip_path" ] || [ ! -s "$geosite_path" ]; then
-					
+					echolog "提示：系统缺少 Geoip.dat 或 Geosite.dat 数据文件，请先在【规则更新】中更新！"
 				fi
 			}
 			run_xray flag=UDP node=$node udp_redir_port=$local_port config_file=$config_file log_file=$log_file
@@ -651,7 +651,7 @@ run_redir() {
 		tcp_node_http_port=$(config_t_get global tcp_node_http_port 0)
 		[ "$tcp_node_http_port" != "0" ] && tcp_node_http=1
 		if [ $PROXY_IPV6 = "1" ]; then
-			
+			echolog "已开启 IPv6 透明代理！"
 		fi
 
 		if [ "${TCP_PROXY_WAY}" = "redirect" ]; then
@@ -716,7 +716,7 @@ run_redir() {
 				local geoip_path="${V2RAY_LOCATION_ASSET%*/}/geoip.dat"
 				local geosite_path="${V2RAY_LOCATION_ASSET%*/}/geosite.dat"
 				if [ ! -s "$geoip_path" ] || [ ! -s "$geosite_path" ]; then
-					
+					echolog "提示：系统缺少 Geoip.dat 或 Geosite.dat 数据文件，请先在【规则更新】中更新！"
 				fi
 				[ "$(config_n_get $node fakedns)" = "1" ] && {
 					USE_FAKEDNS=1
@@ -804,7 +804,7 @@ run_redir() {
 				local geoip_path="${V2RAY_LOCATION_ASSET%*/}/geoip.dat"
 				local geosite_path="${V2RAY_LOCATION_ASSET%*/}/geosite.dat"
 				if [ ! -s "$geoip_path" ] || [ ! -s "$geosite_path" ]; then
-					
+					echolog "提示：系统缺少 Geoip.dat 或 Geosite.dat 数据文件，请先在【规则更新】中更新！"
 				fi
 				[ "$(config_n_get $node fakedns)" = "1" ] && {
 					USE_FAKEDNS=1
@@ -1084,11 +1084,6 @@ start_crontab() {
 
 	clean_crontab
 
-	if [ "$ENABLED" != "1" ]; then
-		/etc/init.d/cron restart
-		return
-	fi
-
 	build_time() {
 		local w="$1"
 		local t="$2"
@@ -1123,15 +1118,18 @@ start_crontab() {
 	}
 
 	# ===== stop/start/restart =====
-	add_service_cron "$(config_t_get global_delay stop_week_mode)" "$(config_t_get global_delay stop_time_mode)" "stop" "配置定时任务：自动关闭服务。"
+	if [ "$ENABLED" = "1" ]; then
+		add_service_cron "$(config_t_get global_delay stop_week_mode)" "$(config_t_get global_delay stop_time_mode)" "stop" "配置定时任务：自动关闭服务。"
 
-	add_service_cron "$(config_t_get global_delay start_week_mode)" "$(config_t_get global_delay start_time_mode)" "start" "配置定时任务：自动开启服务。"
+		add_service_cron "$(config_t_get global_delay start_week_mode)" "$(config_t_get global_delay start_time_mode)" "start" "配置定时任务：自动开启服务。"
 
-	add_service_cron "$(config_t_get global_delay restart_week_mode)" "$(config_t_get global_delay restart_time_mode)" "restart" "配置定时任务：自动重启服务。"
+		add_service_cron "$(config_t_get global_delay restart_week_mode)" "$(config_t_get global_delay restart_time_mode)" "restart" "配置定时任务：自动重启服务。"
+	fi
 
 	# ===== rule update =====
 	local rules_update_week_mode=$(config_t_get global_rules update_week_mode)
 	local rules_update_time_mode=$(config_t_get global_rules update_time_mode)
+	[ -z "$rules_update_time_mode" ] && rules_update_time_mode="0:00"
 	if [ -n "$rules_update_week_mode" ]; then
 		local rule_t=$(build_time "$rules_update_week_mode" "$rules_update_time_mode")
 		if [ "$rules_update_week_mode" = "8" ]; then
@@ -1151,8 +1149,9 @@ start_crontab() {
 		if [ -n "$sub_update_week_mode" ]; then
 			remark=$(config_n_get "$item" remark)
 			sub_update_time_mode=$(config_n_get $item update_time_mode)
+			[ -z "$sub_update_time_mode" ] && sub_update_time_mode="0:00"
 			echo "$item" >> "$TMP_SUB_PATH/${sub_update_week_mode}_${sub_update_time_mode}"
-			
+
 		fi
 	done
 	if [ -d "$TMP_SUB_PATH" ]; then
@@ -1172,13 +1171,8 @@ start_crontab() {
 	fi
 
 	# ===== loop =====
-	if [ "$ENABLED_DEFAULT_ACL" = "1" ] || [ "$ENABLED_ACLS" = "1" ]; then
-		if [ "$update_loop" = "1" ]; then
-			$APP_PATH/tasks.sh > /dev/null 2>&1 &
-			
-		fi
-	else
-		
+	if [ "$update_loop" = "1" ]; then
+		$APP_PATH/tasks.sh > /dev/null 2>&1 &
 	fi
 
 	/etc/init.d/cron restart
@@ -1409,7 +1403,7 @@ start_dns() {
 		chinadns_ng_min=2024.04.13
 		chinadns_ng_now=$($(first_type chinadns-ng) -V | grep -i "ChinaDNS-NG " | awk '{print $2}')
 		if [ $(check_ver "$chinadns_ng_now" "$chinadns_ng_min") = 1 ]; then
-			
+			echolog "提示：ChinaDNS-NG 版本过低(需大于等于${chinadns_ng_min})，可能无法正常分流，建议升级！"
 		fi
 
 		[ "$FILTER_PROXY_IPV6" = "1" ] && DNSMASQ_FILTER_PROXY_IPV6=0
@@ -1444,7 +1438,7 @@ start_dns() {
 
 	[ "$USE_DEFAULT_DNS" = "remote" ] && {
 		dnsmasq_version=$(dnsmasq -v | grep -i "Dnsmasq version " | awk '{print $3}')
-		[ "$(check_ver "$dnsmasq_version" "2.87")" = "1" ] && 
+		[ "$(check_ver "$dnsmasq_version" "2.87")" = "1" ] && echolog "提示：远程DNS模式下 dnsmasq 版本需大于等于 2.87，可能无法正常分流，建议升级！"
 	}
 
 	local DNSMASQ_TUN_DNS=$(get_first_dns TUN_DNS 53)
@@ -1596,7 +1590,7 @@ acl_app() {
 						set_cache_var "ACL_${sid}_tcp_default" "1"
 						[ "$GLOBAL_SHUNT_NODE_FAKEDNS" = "1" ] && use_fakedns=1
 					else
-						
+						:
 					fi
 				else
 					[ "$(config_get_type $tcp_node)" = "nodes" ] || [ "$(config_get_type $tcp_node)" = "socks" ] && {
@@ -1658,7 +1652,7 @@ acl_app() {
 									chinadns_ng_min=2024.04.13
 									chinadns_ng_now=$($(first_type chinadns-ng) -V | grep -i "ChinaDNS-NG " | awk '{print $2}')
 									if [ $(check_ver "$chinadns_ng_now" "$chinadns_ng_min") = 1 ]; then
-										
+										echolog "提示：ChinaDNS-NG 版本过低(需大于等于${chinadns_ng_min})，可能无法正常分流，建议升级！"
 									fi
 
 									[ "$filter_proxy_ipv6" = "1" ] && dnsmasq_filter_proxy_ipv6=0
@@ -1790,7 +1784,7 @@ acl_app() {
 						set_cache_var "ACL_${sid}_udp_redir_port" "${GLOBAL_UDP_redir_port}"
 						set_cache_var "ACL_${sid}_udp_default" "1"
 					else
-						
+						:
 					fi
 				elif [ "$udp_node" = "tcp" ] || [ "$udp_node" = "$tcp_node" ]; then
 					udp_node=$(get_cache_var "ACL_${sid}_tcp_node")
