@@ -3,6 +3,12 @@ api.set_default_cbi()
 
 m = Map()
 
+m.apply_on_parse = true
+
+m.on_after_apply = function()
+	luci.sys.call("/usr/share/nodepool/app.sh refresh_crontab >/dev/null 2>&1 &")
+end
+
 m:appendTemplate("/node_aggregate/box")
 
 m:appendTemplate("/node_subscribe/title")

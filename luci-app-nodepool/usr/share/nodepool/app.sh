@@ -2101,4 +2101,8 @@ start)
 stop)
 	stop
 	;;
+refresh_crontab)
+	get_config
+	start_crontab
+	;;
 esac
