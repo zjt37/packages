@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.SOURCE_REPO_TOKEN }}
 
       - name: Run script
         run: python3 scripts/cf_ip.py
