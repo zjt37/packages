@@ -223,7 +223,7 @@ run_xray() {
 		json_add_string "dns_socks_port" "${dns_socks_port}"
 	}
 	[ -n "$dns_listen_port" ] && json_add_string "dns_listen_port" "${dns_listen_port}"
-	
+
 	if [ -n "$direct_dns_udp_server" ]; then
 		direct_dns_port=$(echo ${direct_dns_udp_server} | awk -F '#' '{print $2}')
 		json_add_string "direct_dns_udp_server" "$(echo ${direct_dns_udp_server} | awk -F '#' '{print $1}')"
@@ -1064,7 +1064,6 @@ start_dns() {
 	esac
 
 	# 追加直连DNS到iptables/nftables
-	[ "$(config_n_get @global_haproxy[0] balancing_enable 0)" != "1" ] && IPT_APPEND_DNS=
 	add_default_port() {
 		[ -z "$1" ] && echo "" || echo "$1" | awk -F',' '{for(i=1;i<=NF;i++){if($i !~ /#/) $i=$i"#53";} print $0;}' OFS=','
 	}
@@ -1288,7 +1287,7 @@ start_dns() {
 			ln_run "$(first_type dnsmasq)" "dnsmasq_direct" "/dev/null" -C ${DIRECT_DNSMASQ_CONF} -x ${GLOBAL_ACL_PATH}/direct_dnsmasq.pid
 			echo "${DIRECT_DNSMASQ_PORT}" > ${GLOBAL_ACL_PATH}/direct_dnsmasq_port
 		}
-		
+
 		#Rewrite the default DNS service configuration
 		#Modify the default dnsmasq service
 		lua $APP_PATH/helper_dnsmasq.lua stretch
@@ -1330,7 +1329,7 @@ start_haproxy() {
 	fi
 	local haproxy_path=$TMP_PATH/haproxy
 	local haproxy_conf="config.cfg"
-	lua $APP_PATH/haproxy.lua -path ${haproxy_path} -conf ${haproxy_conf} -dns ${LOCAL_DNS}
+	lua $APP_PATH/haproxy.lua -path ${haproxy_path} -conf ${haproxy_conf}
 	ln_run "$(first_type haproxy)" haproxy "/dev/null" -f "${haproxy_path}/${haproxy_conf}"
 }
 
@@ -1654,7 +1653,7 @@ start() {
 			sysctl -w net.bridge.bridge-nf-call-ip6tables=0 >/dev/null 2>&1
 		}
 	fi
-	
+
 	start_crontab
 	echolog "运行完成！\n"
 
