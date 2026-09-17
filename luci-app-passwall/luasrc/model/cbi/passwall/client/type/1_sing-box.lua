@@ -620,6 +620,7 @@ if singbox_tags:find("with_utls") then
 	o:depends({ protocol = "shadowsocks", tls = true })
 	o:depends({ protocol = "trojan", tls = true })
 	o:depends({ protocol = "anytls", tls = true })
+	o:depends({ protocol = "http", tls = true })
 
 	o = s:option(Value, "reality_publicKey", translate("Public Key"))
 	o:depends({ reality = true })
@@ -705,16 +706,6 @@ o:depends({ transport = "ws" })
 o = s:option(Value, "ws_path", translate("WebSocket Path"))
 o.placeholder = "/"
 o:depends({ transport = "ws" })
-
-o = s:option(Flag, "ws_enableEarlyData", translate("Enable early data"))
-o:depends({ transport = "ws" })
-
-o = s:option(Value, "ws_maxEarlyData", translate("Early data length"))
-o.default = "1024"
-o:depends({ ws_enableEarlyData = true })
-
-o = s:option(Value, "ws_earlyDataHeaderName", translate("Early data header name"), translate("Recommended value: Sec-WebSocket-Protocol"))
-o:depends({ ws_enableEarlyData = true })
 
 -- [[ HTTPUpgrade部分 ]]--
 o = s:option(Value, "httpupgrade_host", translate("HTTPUpgrade Host"))
