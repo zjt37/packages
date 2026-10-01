@@ -1426,6 +1426,7 @@ local function processData(szType, content, add_mode, group, sub_cfg)
 		result.hysteria_auth_type = "string"
 		result.hysteria_auth_password = params.auth
 		result.tls_serverName = params.peer or params.sni or ""
+		result.tls_pinSHA256 = params.pcs or params.pinSHA256
 		local insecure = params.allowinsecure or params.allowInsecure or params.insecure
 		result.tls_allowInsecure = (insecure == "1" or insecure == "0") and insecure or (sub_allowinsecure and "1" or "0")
 		result.alpn = params.alpn
@@ -1493,14 +1494,8 @@ local function processData(szType, content, add_mode, group, sub_cfg)
 			result.protocol = "hysteria2"
 			result.use_finalmask = (params.fm and params.fm ~= "") and "1" or nil
 			result.finalmask = (params.fm and params.fm ~= "") and api.base64Encode(params.fm) or nil
-			if is_singbox and (params.pcs or params.pinsha256) then
-				params.allowinsecure = "1"
-			end
 		elseif has_hysteria2 then
 			result.type = "Hysteria2"
-			if params.pcs or params.pinsha256 then
-				params.allowinsecure = "0"
-			end
 		else
 			log("跳过 Hysteria2 节点，因未适配到 Hysteria2 核心程序，或未正确设置节点使用类型。")
 			return nil
@@ -1560,6 +1555,7 @@ local function processData(szType, content, add_mode, group, sub_cfg)
 		end
 		result.tls_serverName = params.sni
 		result.tls_disable_sni = params.disable_sni
+		result.tls_pinSHA256 = params.pcs or params.pinsha256
 		result.tuic_alpn = params.alpn or "h3"
 		result.tuic_congestion_control = params.congestion_control or "cubic"
 		result.tuic_udp_relay_mode = params.udp_relay_mode or "native"
@@ -1615,6 +1611,7 @@ local function processData(szType, content, add_mode, group, sub_cfg)
 			if params.security == "tls" or params.security == "reality" then
 				result.tls = "1"
 				result.tls_serverName = params.sni or params.peer
+				result.tls_pinSHA256 = params.pcs or params.pinsha256
 				result.alpn = params.alpn
 				if params.fp and params.fp ~= "" then
 					result.utls = "1"
@@ -1782,6 +1779,9 @@ local function curl(url, file, ua, mode)
 	ua = (ua == "passwall") and ("passwall/" .. api.get_version()) or ua
 	curl_args[#curl_args + 1] = '--user-agent "' .. ua .. '"'
 
+	local cookie_file = "/tmp/cookie_" .. api.gen_random_char(5)
+	curl_args[#curl_args + 1] = '-c "' .. cookie_file .. '" -b "' .. cookie_file .. '"'
+
 	local return_code, result
 	if mode == "direct" then
 		return_code, result = api.curl_base(url, file, curl_args)
@@ -1803,6 +1803,8 @@ local function curl(url, file, ua, mode)
 	if header_str ~= "" then
 		header_str = header_str:gsub("\r", "")
 	end
+
+	api.remove(cookie_file)
 
 	return return_code, http_code, header_str
 end
@@ -2105,14 +2107,9 @@ local function update_node(manual)
 
 	uci_save(true)
 
-	if arg[3] == "cron" then
-		if not fs.access(api.LOCK_PREFIX .. ".lock") then
-			luci.sys.call("touch %s_cron.lock" % api.LOCK_PREFIX)
-		end
-	end
-
+	local action = (arg[3] == "cron") and " cron" or ""
 	if manual ~= 1 then
-		luci.sys.call("/etc/init.d/passwall restart > /dev/null 2>&1 &")
+		luci.sys.call("/etc/init.d/passwall restart%s > /dev/null 2>&1 &" % action)
 	end
 end
 
@@ -2248,7 +2245,7 @@ local execute = function()
 				return_code, value.http_code, headers = curl(url, tmp_file, ua, access_mode)
 				if return_code ~= 0 then
 					fail_list[#fail_list + 1] = value
-					luci.sys.call("rm -f " .. tmp_file)
+					api.remove(tmp_file)
 				end
 			end
 			if fs.access(tmp_file) then
@@ -2258,8 +2255,8 @@ local execute = function()
 					f:close()
 					local raw_data = api.trim(stdout)
 					local old_md5 = value.md5 or ""
-					local new_md5 = luci.sys.exec("md5sum " .. tmp_file .. " 2>/dev/null | awk '{print $1}'"):gsub("\n", "")
-					if not manual_sub and old_md5 == new_md5 then
+					local new_md5 = api.md5_file(tmp_file)
+					if not manual_sub and new_md5 ~= "" and old_md5 == new_md5 then
 						log('订阅:【' .. remark .. '】没有变化，无需更新。')
 					else
 						raw_data = parseClashNode(raw_data)
@@ -2271,7 +2268,7 @@ local execute = function()
 					fail_list[#fail_list + 1] = value
 				end
 				if not url_is_local then
-					luci.sys.call("rm -f " .. tmp_file)
+					api.remove(tmp_file)
 				end
 			end
 		end
@@ -2300,7 +2297,7 @@ local function check_instance(action)
 			uci:revert(c_config)
 		end
 	elseif action == "end" then
-		luci.sys.call("rm -f " .. sub_lock)
+		api.remove(sub_lock)
 		return
 	end
 
@@ -2331,7 +2328,7 @@ if arg[1] then
 		f:close()
 		parse_link(raw, "1", arg[2])
 		update_node(1)
-		luci.sys.call("rm -f /tmp/links.conf")
+		api.remove("/tmp/links.conf")
 	elseif arg[1] == "truncate" then
 		truncate_nodes(arg[2])
 	end
