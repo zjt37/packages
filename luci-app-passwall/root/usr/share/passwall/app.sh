@@ -72,16 +72,26 @@ check_run_environment() {
 }
 
 run_ipt2socks() {
-	local flag tcp_tproxy local_port socks_address socks_port socks_username socks_password log_file
-	local _extra_param=""
-	eval_set_val "$@"
+	local flag tcp_tproxy local_port socks_address socks_port socks_username socks_password log_file param
+	for param in "$@"; do
+		case "$param" in
+			flag=*) flag="${param#*=}" ;;
+			tcp_tproxy=*) tcp_tproxy="${param#*=}" ;;
+			local_port=*) local_port="${param#*=}" ;;
+			socks_address=*) socks_address="${param#*=}" ;;
+			socks_port=*) socks_port="${param#*=}" ;;
+			socks_username=*) socks_username="${param#*=}" ;;
+			socks_password=*) socks_password="${param#*=}" ;;
+			log_file=*) log_file="${param#*=}" ;;
+		esac
+	done
 	[ -n "$log_file" ] || log_file="/dev/null"
-	socks_address=$(get_host_ip "ipv4" ${socks_address})
-	[ -n "$socks_username" ] && [ -n "$socks_password" ] && _extra_param="${_extra_param} -a $socks_username -k $socks_password"
-	[ -n "$tcp_tproxy" ] || _extra_param="${_extra_param} -R"
+	socks_address=$(get_host_ip "ipv4" "$socks_address")
+	set -- -o 60 -n 65535 -v
+	[ -n "$socks_username" ] && [ -n "$socks_password" ] && set -- "$@" -a "$socks_username" -k "$socks_password"
+	[ -n "$tcp_tproxy" ] || set -- "$@" -R
 	flag="${flag}_TCP_UDP"
-	_extra_param="${_extra_param} -o 60 -n 65535 -v"
-	ln_run "$(first_type ipt2socks)" "ipt2socks_${flag}" $log_file -l $local_port -b 0.0.0.0 -B :: -s $socks_address -p $socks_port ${_extra_param}
+	ln_run "$(first_type ipt2socks)" "ipt2socks_${flag}" "$log_file" -l "$local_port" -b 0.0.0.0 -B :: -s "$socks_address" -p "$socks_port" "$@"
 }
 
 run_singbox() {
@@ -504,6 +514,7 @@ run_socks() {
 
 	# http to socks
 	[ -z "$http_flag" ] && [ "$http_port" != "0" ] && [ -n "$http_config_file" ] && [ "$type" != "sing-box" ] && [ "$type" != "xray" ] && [ "$type" != "socks" ] && {
+		local http_type
 		json_init
 		json_add_string "local_http_address" "$bind"
 		json_add_string "local_http_port" "$http_port"
@@ -513,17 +524,17 @@ run_socks() {
 		json_add_string "server_username" "$_username"
 		json_add_string "server_password" "$_password"
 		if [ -n "${SINGBOX_BIN}" ]; then
-			type="sing-box"
+			http_type="sing-box"
 			local bin="${SINGBOX_BIN}"
 			local util="${UTIL_SINGBOX}"
 		elif [ -n "${XRAY_BIN}" ]; then
-			type="xray"
+			http_type="xray"
 			local bin="${XRAY_BIN}"
 			local util="${UTIL_XRAY}"
 		fi
 		[ -n "${bin}" ] && [ -n "${util}" ] && {
 			lua ${util} gen_proto_config "$(json_dump)" > $http_config_file
-			[ -n "$no_run" ] || ln_run "$bin" $type /dev/null run -c "$http_config_file"
+			[ -n "$no_run" ] || ln_run "$bin" "$http_type" /dev/null run -c "$http_config_file"
 		}
 		unset bin util
 	}
@@ -605,7 +616,9 @@ start_global() {
 			local _config_file="global_${NODE}_socks.json"
 			_socks_address="127.0.0.1"
 			_socks_port=$GLOBAL_SOCKS_port
-			run_socks flag="global" node=$NODE bind=${node_socks_bind} socks_port=${_socks_port} config_file=${_config_file}
+			run_socks flag="global" node=$NODE bind=${node_socks_bind} socks_port=${_socks_port} config_file=${_config_file} http_port=${GLOBAL_HTTP_port} http_config_file=${GLOBAL_ACL_PATH}/global_socks_http.json
+			node_socks_flag=1
+			[ "$on_node_http" = "1" ] && node_http_flag=1
 			unset _socks_username
 			unset _socks_password
 		}
@@ -822,7 +835,7 @@ start_global() {
 	if [ -n "${_socks_flag}" ]; then
 		local _socks_tproxy=""
 		[ "${TCP_PROXY_WAY}" = "tproxy" ] && _socks_tproxy="1"
-		run_ipt2socks flag=default tcp_tproxy=${_socks_tproxy} local_port=${REDIR_PORT} socks_address=${_socks_address} socks_port=${_socks_port} socks_username=${_socks_username} socks_password=${_socks_password} log_file=${log_file}
+		run_ipt2socks flag=default tcp_tproxy="${_socks_tproxy}" local_port="${REDIR_PORT}" socks_address="${_socks_address}" socks_port="${_socks_port}" socks_username="${_socks_username}" socks_password="${_socks_password}" log_file="${log_file}"
 	fi
 
 	[ -z "$node_socks_flag" ] && {
@@ -866,7 +879,7 @@ start_socks() {
 				local log=$(config_n_get $id log 1)
 				[ "$log" = "0" ] && log_file=""
 				local http_port=$(config_n_get $id http_port 0)
-				local http_config_file="${flag}_http.json"
+				local http_config_file="${id}_http.json"
 				local enable_autoswitch=$(config_n_get $id enable_autoswitch 0)
 				local no_rec=0
 				[ "$enable_autoswitch" = "1" ] && no_rec=1
@@ -911,9 +924,10 @@ socks_node_switch() {
 		local http_config_file="${flag}_http.json"
 		LOG_FILE="/dev/null"
 		run_socks flag=$flag node=$new_node bind=$bind socks_port=$port config_file=$config_file http_port=$http_port http_config_file=$http_config_file log_file=$log_file
+		sleep 2s
+		[ "$(check_port_exists "$port" tcp)" = "0" ] && return 1
 		set_cache_var "${flag}" "$new_node"
-		local USE_TABLES=$(get_cache_var "USE_TABLES")
-		[ -n "$USE_TABLES" ] && source $APP_PATH/${USE_TABLES}.sh filter_direct_node_list
+		return 0
 	}
 }
 
@@ -930,6 +944,8 @@ clean_crontab() {
 
 start_crontab() {
 	local update_loop
+	local setsid_cmd=""
+	command -v setsid >/dev/null 2>&1 && setsid_cmd="setsid "
 
 	if [ "$ENABLED_DEFAULT_ACL" = "1" ] || [ "$ENABLED_ACLS" = "1" ]; then
 		local start_daemon=$(config_n_get @global_delay[0] start_daemon 0)
@@ -944,7 +960,7 @@ start_crontab() {
 	clean_crontab
 
 	if [ "$ENABLED" != "1" ]; then
-		/etc/init.d/cron restart
+		[ -x /etc/init.d/cron ] && /etc/init.d/cron restart >/dev/null 2>&1
 		return
 	fi
 
@@ -959,8 +975,10 @@ start_crontab() {
 			h="$t"
 			m=0
 		fi
-		h=$(printf '%d' "$h")
-		m=$(printf '%d' "$m")
+		h=$(printf '%s' "$h" | sed 's/^0*//')
+		m=$(printf '%s' "$m" | sed 's/^0*//')
+		h=$(printf '%d' "${h:-0}")
+		m=$(printf '%d' "${m:-0}")
 		local expr="$m $h * * $w"
 		[ "$w" = "7" ] && expr="$m $h * * *"
 		echo "$expr"
@@ -976,7 +994,7 @@ start_crontab() {
 		if [ "$week" = "8" ]; then
 			update_loop=1
 		else
-			echo "$svr_t /etc/init.d/$CONFIG $action cron > /dev/null 2>&1 &" >>/etc/crontabs/root
+			echo "$svr_t ${setsid_cmd}/etc/init.d/$CONFIG $action cron > /dev/null 2>&1 &" >>/etc/crontabs/root
 		fi
 		echolog "$logmsg"
 	}
@@ -996,7 +1014,7 @@ start_crontab() {
 		if [ "$rules_update_week_mode" = "8" ]; then
 			update_loop=1
 		else
-			echo "$rule_t lua $APP_PATH/rule_update.lua log all cron > /dev/null 2>&1 &" >>/etc/crontabs/root
+			echo "$rule_t ${setsid_cmd}lua $APP_PATH/rule_update.lua log all cron > /dev/null 2>&1 &" >>/etc/crontabs/root
 		fi
 		echolog "配置定时任务：自动更新规则。"
 	fi
@@ -1024,7 +1042,7 @@ start_crontab() {
 			if [ "$sub_update_week_mode" = "8" ]; then
 				update_loop=1
 			else
-				echo "$sub_t lua $APP_PATH/subscribe.lua start $cfgids cron > /dev/null 2>&1 &" >>/etc/crontabs/root
+				echo "$sub_t ${setsid_cmd}lua $APP_PATH/subscribe.lua start $cfgids cron > /dev/null 2>&1 &" >>/etc/crontabs/root
 			fi
 		done
 		rm -rf "$TMP_SUB_PATH"
@@ -1040,14 +1058,30 @@ start_crontab() {
 		echolog "运行于非代理模式，仅允许服务启停的定时任务。"
 	fi
 
-	/etc/init.d/cron restart
+	[ -x /etc/init.d/cron ] && /etc/init.d/cron restart >/dev/null 2>&1
 }
 
 stop_crontab() {
 	[ "$1" = "cron" ] && return
 	clean_crontab
-	/etc/init.d/cron restart
+	[ -x /etc/init.d/cron ] && /etc/init.d/cron restart >/dev/null 2>&1
 	#echolog "清除定时执行命令。"
+}
+
+restart_smartdns() {
+	rm -rf /tmp/smartdns.cache
+	/etc/init.d/smartdns reload >/dev/null 2>&1
+}
+
+del_smartdns_conf() {
+	command -v smartdns >/dev/null 2>&1 || return
+	rm -rf "/tmp/etc/smartdns/${CONFIG}.conf"
+	local custom_conf="/etc/smartdns/custom.conf"
+	if [ -f "$custom_conf" ] && grep -q "${CONFIG}" "$custom_conf"; then
+		sed -i "/${CONFIG}/d" "$custom_conf" >/dev/null 2>&1
+		rm -rf /tmp/smartdns.cache
+		/etc/init.d/smartdns reload >/dev/null 2>&1
+	fi
 }
 
 start_dns() {
@@ -1254,7 +1288,8 @@ start_dns() {
 				-USE_DIRECT_LIST "${USE_DIRECT_LIST}" -USE_PROXY_LIST "${USE_PROXY_LIST}" -USE_BLOCK_LIST "${USE_BLOCK_LIST}" -USE_GFW_LIST "${USE_GFW_LIST}" -CHN_LIST "${CHN_LIST}" \
 				-NODE ${NODE} -DEFAULT_PROXY_MODE "${TCP_PROXY_MODE}" -NO_PROXY_IPV6 ${FILTER_PROXY_IPV6:-0} -NFTFLAG ${nftflag:-0} \
 				-SUBNET ${subnet_ip:-0} -NO_LOGIC_LOG ${NO_LOGIC_LOG:-0}
-			source $APP_PATH/helper_smartdns.sh restart
+
+			restart_smartdns
 
 			USE_DEFAULT_DNS="chinadns_ng"
 		else
@@ -1487,7 +1522,7 @@ acl_app() {
 							}
 						}
 
-						local dns_cache_str="${dns_mode}_${v2ray_dns_mode}_${remote_dns}_${remote_dns_doh}_${remote_dns_client_ip}_${remote_fakedns}_${remote_rewrite_ttl}"
+						local dns_cache_str="${dns_mode}_${v2ray_dns_mode}_${remote_dns}_${remote_dns_doh}_${remote_dns_client_ip}_${remote_fakedns}_${remote_rewrite_ttl}_${filter_proxy_ipv6}"
 						dns_cache_key="$(echo -n "${dns_cache_str}" | md5sum | cut -d " " -f1)"
 
 						if [ "$remote_fakedns" = "1" ] || ([ "$protocol" = "_shunt" ] && [ "$(config_n_get $node fakedns)" = "1" ]); then
@@ -1514,7 +1549,7 @@ acl_app() {
 									}
 									run_${type} flag=acl_${sid} type=$dns_mode dns_socks_address=127.0.0.1 dns_socks_port=$socks_port dns_listen_port=$dns_fwd_port \
 										remote_dns_protocol=${v2ray_dns_mode} remote_dns_udp_server=${remote_dns} remote_dns_tcp_server=${remote_dns} remote_dns_doh="${remote_dns_doh}" \
-										remote_dns_query_strategy=${remote_dns_query_strategy} remote_dns_client_ip=${remote_dns_client_ip} config_file=$config_file
+										remote_dns_query_strategy=${remote_dns_query_strategy} remote_dns_client_ip=${remote_dns_client_ip} remote_rewrite_ttl=${remote_rewrite_ttl:-30} config_file=$config_file
 								fi
 								set_cache_var "node_${node}_${dns_cache_key}" "$dns_fwd_port"
 							}
@@ -1643,7 +1678,7 @@ acl_app() {
 			}
 			unset enabled sid remarks sources interface tcp_no_redir_ports udp_no_redir_ports use_global_config node use_direct_list use_proxy_list use_block_list use_gfw_list chn_list tcp_proxy_mode udp_proxy_mode filter_proxy_ipv6 dns_mode remote_dns v2ray_dns_mode remote_dns_doh remote_dns_client_ip
 			unset _ip _mac _iprange _ipset _ip_or_mac source_list node_port config_file _extra_param dns_cache_key log loglevel log_chinadns_ng
-			unset _china_ng_listen _chinadns_local_dns _direct_dns_mode chinadns_ng_default_tag dnsmasq_filter_proxy_ipv6 remote_fakedns force_https_soa use_fakedns remote_rewrite_ttl
+			unset _china_ng_listen _chinadns_local_dns _direct_dns_mode chinadns_ng_default_tag dnsmasq_filter_proxy_ipv6 remote_fakedns force_https_soa use_fakedns remote_rewrite_ttl dns_shunt use_default_dns
 		done
 		unset socks_port redir_port dns_port dnsmasq_port chinadns_port
 		[ -n "${has_enabled}" ] || {
@@ -1737,7 +1772,7 @@ stop() {
 	unset XRAY_LOCATION_ASSET
 	unset SS_SYSTEM_DNS_RESOLVER_FORCE_BUILTIN
 	stop_crontab $1
-	source $APP_PATH/helper_smartdns.sh del
+	del_smartdns_conf
 	rm -rf $GLOBAL_DNSMASQ_CONF
 	rm -rf $GLOBAL_DNSMASQ_CONF_PATH
 	[ "1" = "1" ] && {
@@ -1761,12 +1796,6 @@ stop() {
 	rm -f ${LOCK_PATH}/${CONFIG}_socks_auto_switch*
 	rm -f ${LOCK_PATH}/${CONFIG}_lease2hosts*
 	rm -f ${LOCK_PATH}/${CONFIG}_monitor*
-	if ! busybox pgrep -af "${CONFIG}/" | grep -q '/subscribe\.lua'; then
-		rm -f "${LOCK_PATH}/${CONFIG}_subscribe.lock"
-	fi
-	if ! busybox pgrep -af "${CONFIG}/" | grep -q '/rule_update\.lua'; then
-		rm -f "${LOCK_PATH}/${CONFIG}_rule_update.lock"
-	fi
 	echolog "清空并关闭相关程序和缓存完成。"
 	exit 0
 }
