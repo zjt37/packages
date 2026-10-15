@@ -4,6 +4,7 @@ c_config = "passwall"
 s_config = "passwall_server"
 local com = require "luci.passwall.com"
 nixio = require "nixio"
+require "nixio.util"
 fs = require "nixio.fs"
 sys = require "luci.sys"
 uci = require "luci.model.uci".cursor()
@@ -14,6 +15,7 @@ i18n = require "luci.i18n"
 
 curl_args = { "-skfL", "--connect-timeout 3", "--retry 3", "-H 'Accept: */*'" }
 command_timeout = 300
+DIRECT_GID = 9911
 OPENWRT_ARCH = nil
 DISTRIB_ARCH = nil
 OPENWRT_BOARD = nil
@@ -167,7 +169,7 @@ function del_cache_var(key)
 end
 
 function set_cache_var(key, val)
-	sys.call(string.format('. /usr/share/passwall/utils.sh ; set_cache_var "%s" "%s"', key, val))
+	sys.call(string.format('. /usr/share/passwall/utils.sh ; set_cache_var %s %s', util.shellquote(tostring(key)), util.shellquote(tostring(val))))
 end
 
 function get_cache_var(key)
@@ -193,6 +195,30 @@ function exec_call(cmd)
 	end
 	out = out:gsub("\n?" .. tag .. "%d+%s*$", "")
 	return tonumber(rc), trim(out)
+end
+
+function exec_call_as_gid(cmd, gid)
+	local reader, writer = nixio.pipe()
+	if not reader then return 255, "Unable to create command pipe" end
+	local pid = nixio.fork()
+	if not pid then
+		reader:close()
+		writer:close()
+		return 255, "Unable to fork command"
+	elseif pid == 0 then
+		reader:close()
+		nixio.dup(writer, nixio.stdout)
+		nixio.dup(writer, nixio.stderr)
+		writer:close()
+		if not nixio.setgid(gid) then os.exit(1) end
+		nixio.exec("/bin/sh", "-c", cmd)
+		os.exit(127)
+	end
+	writer:close()
+	local out = reader:readall() or ""
+	reader:close()
+	local _, status, code = nixio.waitpid(pid)
+	return status == "exited" and code or 255, trim(out)
 end
 
 function base64Decode(text)
@@ -261,12 +287,38 @@ function get_domain_port_from_url(url)
 	return domain, port
 end
 
-function curl_base(url, file, args)
+function resolve_domain(domain, dns)
+	dns = dns or get_cache_var("LOCAL_DNS") or "223.5.5.5"
+	local address, port = dns:match("^(.-)#(%d+)$")
+	if not address then address, port = dns:match("^%[(.-)%]:(%d+)$") end
+	if not address then address, port = dns:match("^([^:]+):(%d+)$") end
+	address = (address or dns):gsub("^%[(.-)%]$", "%1")
+	port = port or "53"
+	local server = datatypes.ip6addr(address) and ("[" .. address .. "]") or address
+	local rc, result
+	for _, dns_server in ipairs({server .. ":" .. port, address .. "#" .. port, "223.5.5.5"}) do
+		rc, result = exec_call_as_gid("LC_ALL=C nslookup " .. util.shellquote(domain) .. " " .. util.shellquote(dns_server), DIRECT_GID)
+		local ips, seen, answer = {}, {}, false
+		for line in result:gmatch("[^\r\n]+") do
+			if line:match("^%s*Name:") then answer = true end
+			local ip = answer and line:match("^%s*Address%s*%d*:%s*(%S+)")
+			if ip and (datatypes.ip4addr(ip) or datatypes.ip6addr(ip)) and not seen[ip] then
+				ips[#ips + 1] = ip
+				seen[ip] = true
+			end
+		end
+		if #ips > 0 then return ips end
+	end
+	return nil, result, rc
+end
+
+function curl_base(url, file, args, gid)
 	if not args then args = {} end
 	if file then
 		args[#args + 1] = "-o " .. file
 	end
 	local cmd = string.format('curl %s "%s"', table_join(args), url)
+	if gid then return exec_call_as_gid(cmd, gid) end
 	return exec_call(cmd)
 end
 
@@ -285,9 +337,34 @@ end
 function curl_logic(url, file, args)
 	local return_code, result = curl_proxy(url, file, args)
 	if not return_code or return_code ~= 0 then
-		return_code, result = curl_base(url, file, args)
+		return_code, result = curl_direct(url, file, args)
 	end
 	return return_code, result
+end
+
+function curl_direct(url, file, args)
+	if get_cache_var("ENABLED_DEFAULT_ACL") ~= "1" and get_cache_var("ENABLED_ACLS") ~= "1" then
+		return curl_base(url, file, args)
+	end
+	local tmp_args = clone(args or {})
+	tmp_args[#tmp_args + 1] = "--noproxy '*'"
+	local domain, port = get_domain_port_from_url(url)
+	if domain then
+		local ips, err = resolve_domain(domain)
+		if not ips then return 6, err end
+		for i, ip in ipairs(ips) do
+			if datatypes.ip6addr(ip) then ips[i] = "[" .. ip .. "]" end
+		end
+		tmp_args[#tmp_args + 1] = "--resolve " .. util.shellquote(domain .. ":" .. port .. ":" .. table.concat(ips, ","))
+	end
+	return curl_base(url, file, tmp_args, DIRECT_GID)
+end
+
+function curl_auto(url, file, args)
+	if (uci_get_c("@global[0]", "localhost_proxy") or "1") == "1" then
+		return curl_base(url, file, args)
+	end
+	return curl_logic(url, file, args)
 end
 
 function url(...)
@@ -794,18 +871,25 @@ function clone(org)
 end
 
 function get_bin_version_cache(file, cmd)
-	sys.call("mkdir -p " .. CACHE_PATH)
-	if fs.access(file) then
+	if file and file ~= "" and fs.access(file) then
 		chmod_755(file)
-		local md5 = md5_file(file)
-		if fs.access(CACHE_PATH .. "/" .. md5) then
-			return sys.exec("echo -n $(cat %s)" % { CACHE_PATH .. "/" .. md5 })
-		else
-			local version = sys.exec(string.format("echo -n $(%s %s)", file, cmd))
-			if version and version ~= "" then
-				sys.call("echo '%s' > %s"  % { version, CACHE_PATH .. "/" .. md5})
-				return version
+		local stat = fs.stat(file)
+		local cache_file
+		if stat and stat.dev and stat.ino and stat.size and stat.mtime and stat.ctime then
+			-- Use metadata to avoid hashing the entire binary on every lookup.
+			cache_file = CACHE_PATH .. "/binver_" .. table.concat({stat.dev, stat.ino, stat.size, stat.mtime, stat.ctime}, "_")
+			local cached = fs.readfile(cache_file)
+			if cached and trim(cached) ~= "" then
+				return trim(cached)
 			end
+		end
+		local version = sys.exec(string.format("echo -n $(%s %s)", util.shellquote(file), cmd))
+		if version and version ~= "" then
+			if cache_file then
+				fs.mkdirr(CACHE_PATH)
+				fs.writefile(cache_file, version)
+			end
+			return version
 		end
 	end
 	return ""
@@ -827,7 +911,7 @@ end
 
 local function is_file(path)
 	if path and #path > 1 then
-		if sys.exec('[ -f "%s" ] && echo -n 1' % path) == "1" then
+		if fs.stat(path, "type") == "reg" then
 			return true
 		end
 	end
@@ -836,7 +920,7 @@ end
 
 local function is_dir(path)
 	if path and #path > 1 then
-		if sys.exec('[ -d "%s" ] && echo -n 1' % path) == "1" then
+		if fs.stat(path, "type") == "dir" then
 			return true
 		end
 	end
@@ -1103,9 +1187,9 @@ local function get_api_json(url)
 	local return_code, content
 	if gh_proxy ~= "" then
 		url = gh_proxy .. url
-		return_code, content = curl_base(url, nil, curl_args)
+		return_code, content = curl_direct(url, nil, curl_args)
 	else
-		return_code, content = curl_logic(url, nil, curl_args)
+		return_code, content = curl_auto(url, nil, curl_args)
 	end
 	if return_code ~= 0 or content == "" then return {} end
 	return jsonc.parse(content) or {}
@@ -1233,9 +1317,9 @@ function to_download(app_name, url, size, task_id, keep_files)
 	local return_code, result
 	if gh_proxy ~= "" then
 		url = gh_proxy .. url
-		return_code, result = curl_base(url, tmp_file, _curl_args)
+		return_code, result = curl_direct(url, tmp_file, _curl_args)
 	else
-		return_code, result = curl_logic(url, tmp_file, _curl_args)
+		return_code, result = curl_auto(url, tmp_file, _curl_args)
 	end
 	result = return_code == 0
 
@@ -1477,7 +1561,7 @@ function to_install_self(id, force)
 		remove(dir)
 		return {code = 1}
 	end
-	fs.chmod(script, 755)
+	chmod_755(script)
 	fs.writefile(status, '{"installing":true}')
 	sys.call("nohup " .. script .. " " .. dir .. " " .. status .. " " .. manager .. " " ..
 		(force == "1" and "1" or "0") .. " >/dev/null 2>&1 </dev/null &")
@@ -1485,7 +1569,7 @@ function to_install_self(id, force)
 end
 
 function is_js_luci()
-	return sys.call('[ -f "/www/luci-static/resources/uci.js" ]') == 0
+	return fs.stat("/www/luci-static/resources/uci.js", "type") == "reg"
 end
 
 function set_default_cbi()
@@ -1535,6 +1619,16 @@ function set_default_cbi()
 			end
 			self:append(obj)
 			return obj
+		end
+	end
+	if true then
+		--Table
+		local Table = cbi.Table
+		local default_init = Table.__init__
+		function Table.__init__(self, form, ...)
+			default_init(self, form, ...)
+			-- Table 的 map 是独立数据源，需要从所属表单传递 API
+			self.map.api = form.api
 		end
 	end
 	if true then
